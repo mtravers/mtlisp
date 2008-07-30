@@ -8,7 +8,7 @@ Copyright © 1994-2008 Michael Travers
 Permission is given to use and modify this code as long
 as the copyright notice is preserved.
 
-Send questions, comments, and fixes to mt@media.mit.edu.
+Send questions, comments, and fixes to mt@alum.mit.edu.
 
 -------------------------------------------------------------------------
 

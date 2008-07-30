@@ -9,7 +9,7 @@ Copyright © 1994-97 Michael Travers
 Permission is given to use and modify this code
 as long as the copyright notice is preserved.
 
-Send questions, comments, and fixes to mt@media.mit.edu.
+Send questions, comments, and fixes to mt@alum.mit.edu.
 
 -------------------------------------------------------------------------
 
@@ -27,7 +27,6 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            "DOSEQUENCE" "EXTREME" "EXTREMES" "MAXIMIZE" "MINIMIZE" "MAXIMUMS" "MINIMUMS" "RANDOM-ELEMENT"
            "DO-FOR-ARRAY-ELEMENTS" "CIRCULAR-LIST" "PUSH-END" "PUSHNEW-END" 
 	   "MAPAPPEND" "MAPUNION" "MAPCROSS" "MAPSUM" "SPLIT-LIST" "FILTER" "FILTER-OUT"
-					;"STRING-REPLACE-CHAR"
 	   "COLLECTING" #-:ABCL "COLLECT"
            "STRING-REPLACE" "PARSE-SUBSTRINGS" "TRUNCATE-STRING" "FAST-STRING" "FAST-TEMP-STRING" "STRING-TRUNCATE"
            "DELETEF" "ONCE-ONLY"
@@ -44,7 +43,6 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            "LOG2" "NUMBER-OF-BITS" "AVERAGE" "STD-DEV" "GEO-MEAN" "NTH-ROOT" 
            "PI/2" "PI/4" "2PI"
            #-:ABCL "AIF" "AWHEN" "AAND" "ACOND" "ALAMBDA" #-:ABCL "IT" "SELF"
-;	   "AIF" "AWHEN" "AAND" "ACOND" "ALAMBDA"  "IT" "SELF"
            "SYMBOL-CONC" "SYMBOL-CONC*" "KEYWORDIZE"
            "EXTERNALP" "ADD-NICKNAME" 
            "STREAM-COPY" "FILE-COPY"
@@ -58,6 +56,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            "READ-UNTIL" "READ-UNTIL-STRING" "NEW-STRING"
            "STRING-TRIM-WHITESPACE" "FAST-WHITESPACEP"
 	   "STRING-SPLIT"
+
            ;; from mcl-hacks.lisp -- I don't even have that file around anymore.
 #|
            "EDIT-ANY" "DISASM" "SAVE-ALL-FILES" 
@@ -92,7 +91,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            ;; CTRACE
            "CTRACE" "WITH-CTRACE" "CTRACE-FUNCTION" "UNCTRACE-FUNCTION" "CTRACE-ALL" "CT"
            "WITH-CTRACING" "START-CTRACE" "STOP-CTRACE" "VIEW-CTRACE" "*LAST-CTRACE*"
-           "CALLING" "RETURNED"    ; words used by ctrace-function - sigh
+           "CALLING" "RETURNED"    
 |#
            ))
 

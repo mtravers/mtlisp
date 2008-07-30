@@ -1,0 +1,71 @@
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/collabrx/!svn/ver/513/trunk/knewos/mt-lisp-utils
+END
+asdf-patch.lisp
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/collabrx/!svn/ver/513/trunk/knewos/mt-lisp-utils/asdf-patch.lisp
+END
+clos-dumper.lisp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/collabrx/!svn/ver/513/trunk/knewos/mt-lisp-utils/clos-dumper.lisp
+END
+closstar.lisp
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/collabrx/!svn/ver/513/trunk/knewos/mt-lisp-utils/closstar.lisp
+END
+mt-utils.lisp
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/collabrx/!svn/ver/518/trunk/knewos/mt-lisp-utils/mt-utils.lisp
+END
+mt-pkg.lisp
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/collabrx/!svn/ver/517/trunk/knewos/mt-lisp-utils/mt-pkg.lisp
+END
+load.lisp
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/collabrx/!svn/ver/517/trunk/knewos/mt-lisp-utils/load.lisp
+END
+ctrace.lisp
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/collabrx/!svn/ver/515/trunk/knewos/mt-lisp-utils/ctrace.lisp
+END
+lisp-unit.lisp
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/collabrx/!svn/ver/513/trunk/knewos/mt-lisp-utils/lisp-unit.lisp
+END
+slog.lisp
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/collabrx/!svn/ver/513/trunk/knewos/mt-lisp-utils/slog.lisp
+END
+encapsulate.lisp
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/collabrx/!svn/ver/517/trunk/knewos/mt-lisp-utils/encapsulate.lisp
+END
+mtlisp.asd
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/collabrx/!svn/ver/513/trunk/knewos/mt-lisp-utils/mtlisp.asd
+END

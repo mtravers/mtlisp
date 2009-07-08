@@ -1,0 +1,3 @@
+A collection of smallish Lisp utilities by Mike Travers (mt@alum.mit.edu)
+
+(load "load.lisp")

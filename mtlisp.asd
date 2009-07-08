@@ -10,7 +10,5 @@
      (:file "clos-dumper")
      (:file "ctrace")
      (:file "slog")
-     #+:allegro
-     (:file "acl-compat")
      (:file "lisp-unit")
      ))

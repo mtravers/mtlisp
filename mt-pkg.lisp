@@ -29,7 +29,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            "MAPAPPEND" "MAPUNION" "MAPCROSS" "MAPSUM" "SPLIT-LIST" "FILTER" "FILTER-OUT"
                                         ;"STRING-REPLACE-CHAR"
            "COLLECTING" #-:ABCL "COLLECT" "COLLECT-NEW"
-           "STRING+" "STRING-REPLACE" "PARSE-SUBSTRINGS" "TRUNCATE-STRING" "FAST-STRING" "FAST-TEMP-STRING" "STRING-TRUNCATE"
+           "STRING+" "STRING-REPLACE" "PARSE-SUBSTRINGS" "TRUNCATE-STRING" "FAST-STRING" "FAST-TEMP-STRING" "STRING-TRUNCATE" "STRING-PREFIX-EQUALS" "PUSH-STRING"
            "DELETEF" "ONCE-ONLY"
            "MV-LET*" #-CCL "LET-GLOBALLY"
            "DATE-TIME-STRING" "SHORT-DATE-TIME-STRING" "FORMAT-TIME"
@@ -55,6 +55,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            "DUMP-VARS-TO-FILE" "DUMP-VAR-TO-FILE"
            "DEFBIT"
            "FIRSTN" "REPORT-AND-IGNORE-ERRORS"
+	   "TRANSITIVE-CLOSURE" "NOW"
            "READ-UNTIL" "READ-UNTIL-STRING" "NEW-STRING"
            "STRING-TRIM-WHITESPACE" "FAST-WHITESPACEP"
            "STRING-SPLIT"
@@ -63,7 +64,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            ;; from mcl-hacks.lisp -- I don't even have that file around anymore.
 #|
            "EDIT-ANY" "DISASM" "SAVE-ALL-FILES"
-           "AT-LISTENER-LEVEL" "IN-OWN-PROCESS" "REPORT-AND-IGNORE-ERRORS" 
+           "AT-LISTENER-LEVEL" "IN-OWN-PROCESS" 
            "ERRCHECK" "CHECK-RESERR" "WITH-HANDLE"
            "WITH-RECT" "WITH-VIEW-RECT" "MAKE-GRAY" "MAKE-COLOR*" "MAKE-POLY"
            "WINDOW-EXPOSE" "BRING-TO-TOP"

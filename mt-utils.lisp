@@ -404,7 +404,7 @@ returning the list of results.  Order is maintained as one might expect."
   (and (>= (length string) (length prefix))
        (string-equal string prefix :end1 (length prefix))))
 
-(defmacro pushstring (place add)
+(defmacro push-string (place add)
   `(setf ,place (concatenate 'string ,place ,add)))
 
 (defun first-line (string)
@@ -1060,17 +1060,16 @@ which is nice and compact. But, this isn't Scheme. Still, these are occasionally
 (defun now ()
   (get-universal-time))
 
-;;; From BioBike
+;;; From BioBike (with mods)
 (defmacro one-string (&rest string-designators)
   "Creates a single string (if its arguments are all constant strings)
    or a form that creates a single string (if some arguments are variables)"
   (flet ((string-designator-p (x)
-           (or (stringp x) (characterp x) (quoted-symbol-p x)))
+           (or (stringp x) (characterp x)))
          (to-string (x)
            (cond
             ((stringp x) x)
-            ((characterp x) (string x))
-            ((quoted-symbol-p x) (string (second x))))))
+            ((characterp x) (string x)))))
     (cond
      ((every 'stringp string-designators)
       (apply 'concatenate 'string string-designators))

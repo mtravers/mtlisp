@@ -659,6 +659,17 @@ corresponding function."
   (if (> x 0) (exp (/ (log x) n))
       (error "In NTH-ROOT, X=~S is not positive." x)))
 
+(defun coerce-number (thing &key no-error (default thing))
+  (typecase thing
+    (number thing)
+    (string 
+     (let ((n (read-from-string thing)))
+       (if no-error
+	   (if (numberp n) n default)
+	   (progn
+	     (assert (numberp n))
+	     n))))
+    (t (error "can't coerce ~A to a number" thing))))
 
 ;;; Fast versions of non-arithmetic functions
 

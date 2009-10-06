@@ -46,7 +46,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
 	   "COERCE-NUMBER"
            #-:ABCL "AIF" "AWHEN" "AAND" "ACOND" "ALAMBDA" #-:ABCL "IT" "SELF"
 ;          "AIF" "AWHEN" "AAND" "ACOND" "ALAMBDA"  "IT" "SELF"
-           "SYMBOL-CONC" "SYMBOL-CONC*" "KEYWORDIZE"
+           "SYMBOL-CONC" "SYMBOL-CONC*" "KEYWORDIZE" "UP-KEYWORDIZE"
            "EXTERNALP" "ADD-NICKNAME"
            "STREAM-COPY" "FILE-COPY"
            #-:ABCL "SUBCLASSES" #-:ABCL "SUPERCLASSES"

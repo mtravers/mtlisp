@@ -716,6 +716,9 @@ corresponding function."
 (defun keywordize (symbol)
   (intern (string symbol) (find-package :keyword)))
 
+(defun up-keywordize (symbol)
+  (intern (string-upcase (string symbol)) (find-package :keyword)))
+
 ;;; CL provides no externalp function, and neither does MCL (although it keeps this info with the symbol).
 (defun externalp (symbol)
   (multiple-value-bind (ignore type) 
@@ -801,11 +804,12 @@ corresponding function."
       (write struct :stream stream))))
 
 (defun read-until (stream end-char-or-pred &optional (string (new-string)) untyi-end?)
-  (do ((char (read-char stream) (read-char stream) ))
-      ((if (characterp end-char-or-pred)
-         (char= char end-char-or-pred)
-         (funcall end-char-or-pred char))
-       (when untyi-end?
+  (do ((char (read-char stream nil :eof) (read-char stream nil :eof) ))
+      ((cond ((characterp end-char-or-pred)
+	      (char= char end-char-or-pred))
+	     ((eq char :eof))
+	     (t (funcall end-char-or-pred char)))
+       (when (and untyi-end? (characterp char))
          (untyi char stream))		;+++ somethng weird going on; was stream-untyi which exists nowhere
        (values string char))
     (when string 

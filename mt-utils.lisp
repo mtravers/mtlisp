@@ -829,7 +829,7 @@ corresponding function."
 
 (defvar *whitespace* '(#\Space #\Tab #\Return #\Newline #\Page #\Null #\Linefeed #+MCL #\312))
 
-(defun string-split (str char &key count)
+(defun string-split (str &optional (char #\space) &key count)
   ;; given a string return a list of the strings between occurances
   ;; of the given character.
   ;; If the character isn't present then the list will contain just

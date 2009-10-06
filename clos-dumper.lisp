@@ -110,7 +110,7 @@ History:
   (unless slots (setf slots (ccl::class-make-instance-initargs class)))
   `(defmethod slot-dump-forms nconc ((x ,class))
      (list ,@(loop for s in slots
-                   collect (ccl::keywordify s)
+                   collect (mt:keywordize s)
                    collect `(dump-form (slot-value x ',s))))))
 
 (defmethod dump-form ((l list))

@@ -1,4 +1,8 @@
-(defpackage :clos* (:use #+genera clos #+MCL ccl common-lisp) (:export "DEFCLASS*" "DEFMETHOD*"))
+(defpackage :closstar
+  (:nicknames "CLOS*")
+  (:use #+genera clos #+MCL ccl common-lisp)
+  (:export "DEFCLASS*" "DEFMETHOD*"))
+
 (in-package :clos*)
 
 #| ######################################################################

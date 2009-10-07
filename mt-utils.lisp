@@ -25,6 +25,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
 
 ###################################################################### |#
 
+
 ;;; Generalized variables, lists, binding, etc.
 
 (defmacro deletef (thing place &rest delete-args)
@@ -365,10 +366,11 @@ returning the list of results.  Order is maintained as one might expect."
 |#
 
 (defun string+ (&rest args)
+  "Concatenate the elements of ARGS."
   (apply #'concatenate 'string args))
 
-;;; Return substrings separated by separator character.  
 (defun parse-substrings (string separator)
+  "Return substrings separated by separator character.  "
   (do ((result nil (cons (subseq string finger0 finger1) result))
        (finger0 0 (and finger1 (1+ finger1)))
        (finger1 (position separator string) (and finger1
@@ -377,8 +379,10 @@ returning the list of results.  Order is maintained as one might expect."
        (nreverse result))))
 
 ;;; a much-needed function. this version conses rather more than it should.
-;;; REPLACE can be a string or a function which takes the matched substring and returns a replacement (can be used to preserve case)
 (defun string-replace (string find replace &key (start 0) (end nil) (sequence-type 'string) (test #'char-equal))
+  #.(doc
+     "Replace occurences of FIND in STRING."
+     "REPLACE can be a string or a function which takes the matched substring and returns a replacement (can be used to preserve case, ie).")
   (do ((from start)
        (substrings nil)
        (subst-start t))
@@ -401,6 +405,7 @@ returning the list of results.  Order is maintained as one might expect."
   (every #'upper-case-p s))
 
 (defun string-prefix-equals (string prefix)
+  "T if STRING begins with PREFIX."
   (and (>= (length string) (length prefix))
        (string-equal string prefix :end1 (length prefix))))
 
@@ -488,9 +493,9 @@ returning the list of results.  Order is maintained as one might expect."
 
 ;;; Function definition
 
-;;; Define an inline function
 #-ABCL ; already built in, hopefully compatible
 (defmacro defsubst (name args &body body)
+  "Define an inline function."
   `(progn
      (declaim (inline ,name))       
      (defun ,name ,args
@@ -544,6 +549,7 @@ corresponding function."
        (nth (random (length list)) list)))
 
 (defun arand (center range)
+  "Return a random number from the range [center-range, center+range]"
   (+ center (random (* 2.0 range)) (- range)))
 
 ;;; Numbers
@@ -830,10 +836,8 @@ corresponding function."
 (defvar *whitespace* '(#\Space #\Tab #\Return #\Newline #\Page #\Null #\Linefeed #+MCL #\312))
 
 (defun string-split (str &optional (char #\space) &key count)
-  ;; given a string return a list of the strings between occurances
-  ;; of the given character.
-  ;; If the character isn't present then the list will contain just
-  ;; the given string.
+  #.(doc
+     "Given a string STR, return a list of the strings between occurances of CHAR.")
   (let ((loc (position char str))
 	(start 0)
 	(res))
@@ -905,7 +909,7 @@ corresponding function."
            ht)
     result))
 
-;;; CLOS
+;;; CLOS utilities
 
 (defmethod subclasses ((c class))
   (remove-duplicates
@@ -924,9 +928,10 @@ corresponding function."
   (setf (getf (slot-value o 'plist) property)
         value))
 
-;;; call a generic function iff it is implemented for the args
-; note: this won't work when a gf gets encapsulated (ie, by trace or metering)
 (defun call-if (gf &rest args)
+  #.(doc
+     "call a generic function iff it is implemented for the args."
+     "Note: this won't work when a gf gets encapsulated (ie, by trace or metering)")
   (when (apply #'method-exists-p gf args)
     (apply gf args)))
 
@@ -980,6 +985,29 @@ Why is this easier than writing a lambda expression? Well, if it was scheme we c
   (define numsort (rcurry sort <))
 which is nice and compact. But, this isn't Scheme. Still, these are occasionally useful.
  |#
+
+(defun transitive-closure (thing proc)
+  #.(doc 
+     "PROC is a procedure of one arg that returns a list."
+     "Thing is a list of starting points, or a single non-list")
+  (do ((done nil)
+       (fringe (if (listp thing) thing (list thing))))
+      ((null fringe) done)
+    (let ((new (pop fringe)))
+      (push new done)
+      (dolist (obj (funcall proc new))
+	(unless (member obj done)
+	  (push obj fringe))))))
+
+(defun transitive-closure-procedure (proc)
+  (rcurry #'transitive-closure proc))
+
+#|
+example:
+(defun all-values (f) (collecting (for-all-frames (f) (for-frame-slots (f s v) (dolist (vv v) (collect-new vv))))))
+
+(funcall (mt::transitive-closure-procedure #'all-values) a-frame)
+|#
 
 ;;; Saving and restoring
 
@@ -1051,19 +1079,6 @@ which is nice and compact. But, this isn't Scheme. Still, these are occasionally
             (format *debug-stream* "~%Error: ~A~%" condition)
 	    condition)))
 
-          
-;;; Proc is a procedure of one arg that returns a list
-;;; Thing is a list of starting points, or a single non-list
-(defun transitive-closure (thing proc)
-  (do ((done nil)
-       (fringe (if (listp thing) thing (list thing))))
-      ((null fringe) done)
-    (let ((new (pop fringe)))
-      (push new done)
-      (dolist (obj (funcall proc new))
-	(unless (member obj done)
-	  (push obj fringe))))))	
-
 (defmacro let*-debug (forms &body body)
   `(let* ,(mapcar #'(lambda (form)
 		      `(,(car form)
@@ -1075,49 +1090,7 @@ which is nice and compact. But, this isn't Scheme. Still, these are occasionally
 (defun now ()
   (get-universal-time))
 
-;;; From BioBike (with mods)
-(defmacro one-string (&rest string-designators)
-  "Creates a single string (if its arguments are all constant strings)
-   or a form that creates a single string (if some arguments are variables)"
-  (flet ((string-designator-p (x)
-           (or (stringp x) (characterp x)))
-         (to-string (x)
-           (cond
-            ((stringp x) x)
-            ((characterp x) (string x)))))
-    (cond
-     ((every 'stringp string-designators)
-      (apply 'concatenate 'string string-designators))
-     ((every #'string-designator-p string-designators)
-      (apply 'concatenate 
-        'string (mapcar #'to-string string-designators)))
-     (t
-      (let ((reversed-form (reverse '(concatenate 'string)))
-            (merged-constant-strings ""))
-        (dolist (x string-designators)
-          (if (not (string-designator-p x))
-              (progn
-                (when (> (length merged-constant-strings) 0)
-                  (push merged-constant-strings reversed-form)
-                  (setq merged-constant-strings ""))
-                (push x reversed-form))
-            (setq merged-constant-strings
-                  (concatenate 'string 
-                    merged-constant-strings (to-string x)))
-            ))
-        (when (> (length merged-constant-strings) 0)
-          (push merged-constant-strings reversed-form))
-        (reverse reversed-form)
-        )))))
 
-(defmacro doc (&rest string-designators)
-  "Inserts newlines after every argument except the last, and calls ONE-STRING"
-  (let ((nl (string #\Newline)))
-    `(one-string
-      ,@(loop for strings on string-designators 
-              as s = (first strings)
-              nconc 
-             (if (cdr strings) (list s nl) (list s))))))
 
 (provide :mt-utils)
 

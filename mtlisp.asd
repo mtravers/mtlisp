@@ -4,6 +4,7 @@
     :version "0.1"
     :author "Mike Travers (mt@alum.mit.edu)"
     :description "MT's Common Lisp utilities."
+    :licence "Lessor Lisp General Public License"
     :serial t
     :components 
     ((:file "mt-pkg")

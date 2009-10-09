@@ -816,7 +816,7 @@ corresponding function."
 	     ((eq char :eof))
 	     (t (funcall end-char-or-pred char)))
        (when (and untyi-end? (characterp char))
-         (untyi char stream))		;+++ somethng weird going on; was stream-untyi which exists nowhere
+         (unread-char char stream))
        (values string char))
     (when string 
       (vector-push-extend char string))))

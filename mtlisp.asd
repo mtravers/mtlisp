@@ -14,7 +14,8 @@
      (:file "clos-dumper")
      (:file "ctrace")
      (:file "slog")
-     #+:allegro
-     (:file "acl-compat")
+; this has disappeared
+;     #+:allegro
+;     (:file "acl-compat")
      (:file "lisp-unit")
      ))

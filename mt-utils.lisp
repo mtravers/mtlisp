@@ -422,63 +422,23 @@ returning the list of results.  Order is maintained as one might expect."
     (symbol (symbol-name obj))          ;what about package?
     (t (fast-princ-to-string obj))))
 
-(defun fast-temp-string (obj)
-  (typecase obj
-    (null "")
-    (string obj)
-    (symbol (symbol-name obj))          ;what about package?
-    (t (fast-princ-to-temp-string obj))))
-
-;;; +++ this stuff is MCL dependent.
-
-#|  Class is in Clozure, but not working the same way apparently
 #+MCL
 (defvar *fast-princ-to-string-stream* 
-  (make-instance 'ccl::string-output-stream
-    :string (make-array 100
-                        :element-type 'character
-                                      :adjustable t
-                                      :fill-pointer 0)))
+  (ccl::%make-string-output-stream (make-array 100
+					       :element-type 'character
+					       :adjustable t
+					       :fill-pointer 0)))
 
+;;; about twice as fast
 #+MCL
 (defun fast-princ-to-string (obj)
   (princ obj *fast-princ-to-string-stream*)
   (ccl::get-output-stream-string *fast-princ-to-string-stream*))
 
+;;; for other implementations, do the normal thing
 #-MCL
-|#
 (defun fast-princ-to-string (obj)
   (princ-to-string obj))
-
-;;; This version returns a string that will change on the next call!
-#+MCL
-(defun fast-princ-to-temp-string (obj)
-  (let ((string (slot-value *fast-princ-to-string-stream* 'ccl::my-string)))
-    (setf (fill-pointer string) 0)
-    (princ obj *fast-princ-to-string-stream*)
-    string))
-
-#+MCL
-(defun fast-prin1-to-temp-string (obj)
-  (let ((string (slot-value *fast-princ-to-string-stream* 'ccl::my-string)))
-    (setf (fill-pointer string) 0)
-    (prin1 obj *fast-princ-to-string-stream*)
-    string))
-
-#+MCL
-(defun fast-pprint-to-temp-string (obj)
-  (let ((string (slot-value *fast-princ-to-string-stream* 'ccl::my-string)))
-    (setf (fill-pointer string) 0)
-    (pprint obj *fast-princ-to-string-stream*)
-    string))
-
-#+MCL
-(defun fast-format-to-temp-string (control &rest args)
-  (let ((string (slot-value *fast-princ-to-string-stream* 'ccl::my-string)))
-    (setf (fill-pointer string) 0)
-    (apply #'format *fast-princ-to-string-stream* control args)
-    string))
-
 
 (defun string-truncate (string length)
   (if (<= (length string) length)
@@ -912,12 +872,16 @@ corresponding function."
 ;;; CLOS utilities
 
 (defmethod subclasses ((c class))
-  (remove-duplicates
-   (cons c (mapcan #'subclasses (class-direct-subclasses c)))))
+   (remove-duplicates
+    (transitive-closure c 
+			#+:CCL #'ccl:class-direct-subclasses
+			#+:ACL #'mop:class-direct-subclasses)))
 
 (defmethod superclasses ((c class))
   (remove-duplicates
-   (cons c (mapcan #'superclasses (class-direct-superclasses c)))))
+   (transitive-closure c 
+		       #+:CCL #'ccl:class-direct-superclasses
+		       #+:ACL #'mop:class-direct-superclasses)))
 
 (defclass plist-mixin () ((plist :initform nil)))
 
@@ -1030,6 +994,7 @@ example:
 
 ;;; Bit manipulation
 
+
 ;;; Define bit-fields in any setf'able place
 ;; Example: (defbit node-expanded? 'node-bits 1)
 ;; uses fixnum declarations!  Better initialize field to zero, not nil!
@@ -1037,14 +1002,14 @@ example:
   (let ((setter (symbol-conc 'set- name)))
     `(progn
        (defmacro ,name (obj)
-         `(not (zerop& (logand& (,,field ,obj) ,,(lsh 1 pos)))))
+         `(not (zerop& (logand& (,,field ,obj) ,,(expt 2 pos)))))
        (defmacro ,setter (obj new-val)
          (once-only (obj new-val)
            `(progn
               (setf (,,field ,obj)
                   (if ,new-val
-                    (logior& ,,(lsh 1 pos) (,,field ,obj))
-                    (logandc1& ,,(lsh 1 pos) (,,field ,obj))))          ; +++ not inlined in MCL3?
+                    (logior& ,,(expt 2 pos) (,,field ,obj))
+                    (logandc1& ,,(expt 2 pos) (,,field ,obj))))          ; +++ not inlined in MCL3?
               ,new-val)))
        (defsetf ,name ,setter))))
 
@@ -1090,6 +1055,12 @@ example:
 (defun now ()
   (get-universal-time))
 
+(defmacro without-interrupts (&body body)
+  `(#+:CCL 
+    ccl:without-interrupts
+    #-:CCL 
+    ,(error "without-interrupts not supported in this lisp")
+    ,@body))
 
 
 (provide :mt-utils)

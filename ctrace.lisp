@@ -1,4 +1,4 @@
-(in-package :cl-user)
+(in-package :mt)
 
 #| ######################################################################
 
@@ -118,16 +118,11 @@ Ancestry: Henry Lieberman's ZStep, my own PSTEP/PTRACE.
           (copy-list-recursive (cdr item)))
     item))
 
-#-(OR :CCL :ACL)
-(defmacro without-interrupts (&body body)
-  `(progn ,@body))
-
 (defun ctrace-item-out (item)
-  (without-interrupts                   ; lock out other processes
-   (let ((newbie (list item)))           
-     (when (cdr (last *ctrace-current-item*)) (error "foo?"))    ; make sure we aren't clobbering anything
-     (rplacd (last *ctrace-current-item*) newbie)
-     (setf *ctrace-current-item* newbie))))
+  (let ((newbie (list item)))           
+    (when (cdr (last *ctrace-current-item*)) (error "foo?"))    ; make sure we aren't clobbering anything
+    (rplacd (last *ctrace-current-item*) newbie)
+    (setf *ctrace-current-item* newbie)))
 
 ; make a ctrace entry. this is a macro so that the computation of the item
 ; can be done lazily.
@@ -151,16 +146,7 @@ Ancestry: Henry Lieberman's ZStep, my own PSTEP/PTRACE.
   (assert (fboundp function-name) ()
           "No definition for ~A" function-name)
   (pushnew function-name *ctraced-functions*)
-#| This is for older versions of MCL, but needs a better conditional
-  #-(or :ccl-3.1 :ccl-4)
-  (ccl::advise-1 function-name :around 'ctrace 
-                 `(with-ctrace (`(calling (,',function-name ,@(copy-list-recursive arglist))) ,level)
-                    (let ((result (:do-it)))
-                      (ctrace `(,',function-name returned ,(copy-list-recursive result)) ,level)
-                      result))
-		      nil)
-|#		      
-  #+(or :ccl-3.1 :ccl-4)
+  #+:CCL				;Written for ancient CCL, not clear if it still works
   (let ((newsym (gensym "CTRACE")))
     (ccl::advise-2
      (eval (ccl::advise-global-def
@@ -188,7 +174,7 @@ Ancestry: Henry Lieberman's ZStep, my own PSTEP/PTRACE.
                  (ctrace `(,',function-name returned ,(copy-list-recursive result)) ,level)
                  result)))
      newsym nil function-name :around 'ctrace nil))
-  #-(OR :ACL :CCL-3.1 :ccl-4 :abcl)
+  #-(OR :ACL :CCL :ABCL)
   (error "i don't know how to advise functions in this lisp")
   )
 
@@ -264,17 +250,6 @@ Ancestry: Henry Lieberman's ZStep, my own PSTEP/PTRACE.
 (defclass trace-window (fred-window) ()
   (:default-initargs :scratch-p t))
 
-#+:CCL
-(defun view-ctrace (&optional (trace *ctrace-top*))
-  (let ((w (make-instance 'trace-window
-             :window-title (format nil "Trace ~A" (car trace))
-             :view-font '("Geneva" 9 :plain)
-             :view-size (make-point 1000 700)))) ; #@(1000 700)
-    (pprint trace w)
-    (invalidate-view w)                 ; necessary to force update
-    (beep)))
-
-#-:CCL
 (defun view-ctrace (&optional (trace *ctrace-top*))
   (pprint trace))
 

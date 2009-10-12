@@ -22,7 +22,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
 ###################################################################### |#
 
 (defpackage :mt
-  (:use  #+MCL :ccl :cl)
+  (:use :cl)				;  #+MCL :ccl
   (:export ; from mt-utils.lisp
            "DOSEQUENCE" "EXTREME" "EXTREMES" "MAXIMIZE" "MINIMIZE" "MAXIMUMS" "MINIMUMS" "RANDOM-ELEMENT"
 	   "NAMED-LAMBDA" "SYMBOLIZE"
@@ -56,48 +56,16 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            "DUMP-VARS-TO-FILE" "DUMP-VAR-TO-FILE"
            "DEFBIT"
            "FIRSTN" "REPORT-AND-IGNORE-ERRORS"
-	   "NOW"
+	   "NOW" "WITHOUT-INTERRUPTS"
            "READ-UNTIL" "READ-UNTIL-STRING" "NEW-STRING"
            "STRING-TRIM-WHITESPACE" "FAST-WHITESPACEP"
            "STRING-SPLIT"
 	   "ONE-STRING" "DOC"
            *WHITESPACE*
-           ;; from mcl-hacks.lisp -- I don't even have that file around anymore.
-#|
-           "EDIT-ANY" "DISASM" "SAVE-ALL-FILES"
-           "AT-LISTENER-LEVEL" "IN-OWN-PROCESS" 
-           "ERRCHECK" "CHECK-RESERR" "WITH-HANDLE"
-           "WITH-RECT" "WITH-VIEW-RECT" "MAKE-GRAY" "MAKE-COLOR*" "MAKE-POLY"
-           "WINDOW-EXPOSE" "BRING-TO-TOP"
-           "SCALE-SUBVIEWS-MIXIN" "VIEW-SCALE" "VIEW-SHRINK-TO-FIT-SUBVIEWS"
-           "VIEW-OVERLAPS?" "VIEWS-OVERLAP?" "POINT-MAX" "POINT-MIN" "POINT>"
-           "VIEW-ADJUST-FOR-SUBVIEWS"
-           "VIEW-CONTAINED-BY?" "VIEW-POSITION-RELATIVE"
-           "VIEW-REAL-POSITION" "VIEW-REAL-POSITION-RELATIVE"
-           "VIEW-HIERARCHY" "WINDOW-UNDER-POINT"
-           "WARP-MOUSE" "RAW-MOUSE" "HIDE-MOUSE"
-           "REALNAME" "REREQUIRE" "WILDCARD-COPY"
-           "RREF*" "RESOURCEP" "RESOURCE-INFO" "ALL-RESOURCES-OF-TYPE"
-           "WITH-TIMEOUT" "SET-TIMEOUT"
-           "HERE" "REL-PATHNAME"
-           "ADD-MENU-ITEM-AT"
-           ;; Pixmap utils
-           "COPYBITS"
-           "PIXMAP-DIALOG-ITEM" "PICT-DIALOG-ITEM"
-           "MAKE-GWORLD*" "WITH-GWORLD"
-           "WINDOW-SNAPSHOT"
-           "PICT->PIXMAP" "ARRAY->PIXMAP" "PIXMAP->ARRAY" "BITMAP->ARRAY"
-           "ROTATE-PIXMAP" "PIXMAP-MASK"
-           "NEW-PIXMAP" "MAKE-PIXMAP" "MAKE-BITMAP*" "KILL-BITMAP"
-|#
-           ;; Slogging
-           "SLOG" "*SLOGGING*" "*SLOG-OUTPUT*"
-#|  Moved to cl-user
            ;; CTRACE
            "CTRACE" "WITH-CTRACE" "CTRACE-FUNCTION" "UNCTRACE-FUNCTION" "CTRACE-ALL" "CT"
            "WITH-CTRACING" "START-CTRACE" "STOP-CTRACE" "VIEW-CTRACE" "*LAST-CTRACE*"
            "CALLING" "RETURNED"    ; words used by ctrace-function - sigh
-|#
            ))
 
 

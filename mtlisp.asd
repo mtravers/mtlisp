@@ -13,7 +13,6 @@
      (:file "closstar")
      (:file "clos-dumper")
      (:file "ctrace")
-     (:file "slog")
 ; this has disappeared
 ;     #+:allegro
 ;     (:file "acl-compat")

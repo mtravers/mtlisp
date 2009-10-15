@@ -157,11 +157,11 @@ Ancestry: Henry Lieberman's ZStep, my own PSTEP/PTRACE.
                  result))))
      newsym nil function-name :around 'ctrace nil))
   #+:ACL
-  (advise-1 function-name :around :ctrace 1
-	    `((with-ctrace (`(calling (,',function-name ,@(copy-list-recursive arglist))) ,level)
-	       (let ((result :do-it))
-		   (ctrace `(,',function-name returned ,(copy-list-recursive result)) ,level)
-		   result))))
+  (excl:advise-1 function-name :around :ctrace 1
+		 `((with-ctrace (`(calling (,',function-name ,@(copy-list-recursive arglist))) ,level)
+		     (let ((result :do-it))
+		       (ctrace `(,',function-name returned ,(copy-list-recursive result)) ,level)
+		       result))))
   ;; not working yet.  encapsulate:advise doesn't eval its args, so this wont work
   ;; wait, it's from LSW and OpenMCL...still doesn't work though (? say what?)
   #+:ABCL
@@ -195,7 +195,7 @@ Ancestry: Henry Lieberman's ZStep, my own PSTEP/PTRACE.
 
 #+:ACL
 (defun unctrace-function-2 (function-name)
-  (unadvise-1 function-name :around :ctrace))
+  (excl:unadvise-1 function-name :around :ctrace))
 
 #+:ABCL
 ;;; ??? who knows if this is right

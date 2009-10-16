@@ -701,14 +701,15 @@ corresponding function."
 
 ;;; these are slightly mistitled, since they don't necessarily return strings anymore
 
-(defun date-time-string (universal-time &optional (include-time t) (stream nil))
+(defun date-time-string (universal-time &key (include-time t) (include-day t) (stream nil))
   (multiple-value-bind (second minute hour date month year day-of-week) 
                        (decode-universal-time universal-time)
     (declare (ignore second))
     (let ((months '(January February March April May June 
                     July August September October November December))
           (days '(monday tuesday wednesday thursday friday saturday sunday)))
-      (format stream "~A ~A ~A, ~A~:[~; ~A:~2,'0D~A~]" 
+      (format stream "~:[~*~;~A ~]~A ~A, ~A~:[~; ~A:~2,'0D~A~]" 
+	      include-day
               (string-capitalize (string (nth day-of-week days)))
               (string-capitalize (string (nth (- month 1) months)))
               date year 

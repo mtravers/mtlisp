@@ -995,7 +995,6 @@ example:
 
 ;;; Bit manipulation
 
-
 ;;; Define bit-fields in any setf'able place
 ;; Example: (defbit node-expanded? 'node-bits 1)
 ;; uses fixnum declarations!  Better initialize field to zero, not nil!
@@ -1013,6 +1012,18 @@ example:
                     (logandc1& ,,(expt 2 pos) (,,field ,obj))))          ; +++ not inlined in MCL3?
               ,new-val)))
        (defsetf ,name ,setter))))
+
+(defun getbit (n pos)
+  (not (zerop& (logand& n (expt 2 pos)))))
+
+(defun setbit (n pos v)
+  (if v 
+      (logior& n (expt 2 pos))
+      n))
+
+(defun xor (a b)
+  (and (or a b)
+       (not (and a b))))
 
 ;;; Debugging
 

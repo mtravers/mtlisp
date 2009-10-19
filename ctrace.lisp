@@ -191,7 +191,7 @@ Ancestry: Henry Lieberman's ZStep, my own PSTEP/PTRACE.
 
 #+:CCL
 (defun unctrace-function-2 (function-name)
-  (ccl::unadvise-1 function-name :around 'ctrace))
+  (ccl::%unadvise-1 function-name :around 'ctrace))
 
 #+:ACL
 (defun unctrace-function-2 (function-name)

@@ -445,6 +445,33 @@ returning the list of results.  Order is maintained as one might expect."
       string
       (format nil "~A..." (subseq string 0 length))))
 
+;;; From BioBike
+(defun translate-string (string from to)
+  #.(doc
+     "Changes the characters in a string from one set to another. "
+     "See the documentation for NTRANSLATE-STRING.")
+  (ntranslate-string (copy-seq string) from to))
+
+(defun ntranslate-string (string from to)
+  #.(doc
+     "Destructively changes the characters in a string from one set to "
+     "another.  For example: (ntranslate-string \"This\" "
+     "\"abcdefghijklmnopqrstuvwxyz\" \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\") " 
+     "will change the string to THIS and return it. "
+     "NOTE THAT THIS ACTUALLY MODIFIES THE ORIGNAL STRING; "
+     "If you want to preserve the string, use TRANSLATE-STRING."
+     )
+  (if (and (simple-string-p string) 
+           (simple-string-p from) 
+           (simple-string-p to))
+      (ntranslate-string-fast string from to)
+    (loop for i below (length string)
+          as pos = (position (aref string i) from)
+          when pos
+          do (setf (aref string i) (aref to pos))))
+  string)
+
+
 ;;; inefficient, if the purpose is to make long lists manageable.  Easy to fix.
 (defun list-truncate (list length)
   (if (> (length list) length)

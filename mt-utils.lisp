@@ -1102,5 +1102,16 @@ example:
     ,@body))
 
 
+;;; Run a section of code in a background process, errors are reported.  Name must be a string.
+;;; A closure is made around the body.
+#+:ACL-COMPAT
+(defmacro in-background (name &body body)
+  `(mp:process-run-function 
+    ,name
+    #'(lambda () 
+        (handler-case (progn ,@body)
+          (error (condition)
+	    (format *debug-stream* "~%Error in process ~A: ~A" ,name condition))))))
+
 (provide :mt-utils)
 

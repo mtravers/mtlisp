@@ -59,7 +59,8 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            "DEFBIT"
            "FIRSTN" "BREAK-LIST"
 	   "REPORT-AND-IGNORE-ERRORS"
-	   "NOW" "WITHOUT-INTERRUPTS"
+	   "NOW" 
+	   "WITHOUT-INTERRUPTS" #+:ACL-COMPAT "IN-BACKGROUND"
            "READ-UNTIL" "READ-UNTIL-STRING" "NEW-STRING"
            "STRING-TRIM-WHITESPACE" "FAST-WHITESPACEP"
            "STRING-SPLIT"
@@ -69,6 +70,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            "CTRACE" "WITH-CTRACE" "CTRACE-FUNCTION" "UNCTRACE-FUNCTION" "CTRACE-ALL" "CT"
            "WITH-CTRACING" "START-CTRACE" "STOP-CTRACE" "VIEW-CTRACE" "*LAST-CTRACE*"
            "CALLING" "RETURNED"    ; words used by ctrace-function - sigh
-           ))
+           )
+  )
 
 

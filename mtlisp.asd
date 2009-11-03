@@ -6,6 +6,7 @@
     :description "MT's Common Lisp utilities."
     :licence "Lessor Lisp General Public License"
     :serial t
+    :depends-on (#-ACL :acl-compat)
     :components 
     ((:file "mt-pkg")
      (:file "pre-utils")

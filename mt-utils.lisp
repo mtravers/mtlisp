@@ -88,6 +88,15 @@ NOTE: This is the canonical version!  Accept no substitutes.
       structure
       (apply #'findprops (findprop structure (car props)) (cdr props))))
 
+;;; From BioLisp
+(defmacro assocadr (key alist &rest assoc-keywords)
+  "Shorthand for (CADR (ASSOC ...))"
+  `(cadr (assoc ,key ,alist ,@assoc-keywords)))
+
+(defmacro assocdr (key alist &rest assoc-keywords)
+  "Shorthand for (CDR (ASSOC ...))"
+  `(cdr (assoc ,key ,alist ,@assoc-keywords)))
+
 ;;; mv-let*: lets the car of a let binding form be a list
 ;;; elements of which get bound to multiple values.
 
@@ -883,6 +892,9 @@ corresponding function."
 (defun string-remove-chars (string char-bag)
   (remove char-bag string :test #'(lambda (a b) (find b a :test #'equal))))
 
+(defun string-remove-whitespace (string)
+  (string-remove-whitespace string *whitespace*))
+
 ;;; Hash tables
 
 (defun dump-ht (ht)
@@ -896,6 +908,9 @@ corresponding function."
                  (push (list key value) result))
            ht)
     result))
+
+(defun hash-keys (ht)
+  (loop for k being the hash-keys of ht collect k))
 
 ;;; CLOS utilities
 
@@ -1106,7 +1121,7 @@ example:
 ;;; A closure is made around the body.
 #+:ACL-COMPAT
 (defmacro in-background (name &body body)
-  `(mp:process-run-function 
+  `(acl-compat.mp:process-run-function 
     ,name
     #'(lambda () 
         (handler-case (progn ,@body)

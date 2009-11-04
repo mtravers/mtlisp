@@ -79,7 +79,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
            (return nil)))))
 
 ;;; for descending down alist type structures, esp. those in JSON like form
-(defun findprop (structure prop)
+(defun findprop (prop structure)
   (cadr (member prop structure :test #'equal)))
 
 ;;; recursive version of above

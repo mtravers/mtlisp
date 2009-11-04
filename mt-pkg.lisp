@@ -54,6 +54,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            #-:ABCL "SUBCLASSES" #-:ABCL "SUPERCLASSES"
            "PLIST-MIXIN" "OGET" "OPUT" "CALL-IF"
            "SET-EQUAL" "CURRY" "RCURRY" "TRANSITIVE-CLOSURE" "TRANSITIVE-CLOSURE-PROCEDURE"
+	   "FINDPROP" 
            "DUMP-HT" "HT-CONTENTS"
            "DUMP-VARS-TO-FILE" "DUMP-VAR-TO-FILE"
            "DEFBIT"

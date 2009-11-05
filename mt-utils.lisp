@@ -738,6 +738,9 @@ corresponding function."
 ;;; these are slightly mistitled, since they don't necessarily return strings anymore
 
 (defun date-time-string (universal-time &key (include-time t) (include-date t) (include-day t) (stream nil))
+  #.(doc "Turn a universal time into a string.  Arguments are fairly obvious."
+	 ":include-day and :include-date can take the value :unless-today, in which case date or day"
+	 "is only included if the time is not today.")
   (multiple-value-bind (second minute hour date month year day-of-week) 
                        (decode-universal-time universal-time)
     (declare (ignore second))

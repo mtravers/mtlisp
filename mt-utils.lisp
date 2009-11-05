@@ -737,14 +737,28 @@ corresponding function."
 
 ;;; these are slightly mistitled, since they don't necessarily return strings anymore
 
-(defun date-time-string (universal-time &key (include-time t) (include-day t) (stream nil))
+(defun date-time-string (universal-time &key (include-time t) (include-date t) (include-day t) (stream nil))
   (multiple-value-bind (second minute hour date month year day-of-week) 
                        (decode-universal-time universal-time)
     (declare (ignore second))
-    (let ((months '(January February March April May June 
+    (let* ((months '(January February March April May June 
                     July August September October November December))
-          (days '(monday tuesday wednesday thursday friday saturday sunday)))
-      (format stream "~:[~*~;~A ~]~A ~A, ~A~:[~; ~A:~2,'0D~A~]" 
+          (days '(monday tuesday wednesday thursday friday saturday sunday))
+	  (today? (multiple-value-bind (nsecond nminute nhour ndate nmonth nyear)
+		      (decode-universal-time (get-universal-time))
+		    (declare (ignore nsecond nminute nhour))
+		    (and (= ndate date)
+			 (= nmonth month)
+			 (= nyear year))))
+	  (include-day (if (eq include-day :unless-today)
+			   (not today?)
+			   include-day))
+	  (include-date (if (eq include-date :unless-today)
+			   (not today?)
+			   include-date))
+	  )
+      (format stream "~:[~5*~;~:[~*~;~A ~]~A ~A, ~A~]~:[~; ~A:~2,'0D~A~]" 
+	      include-date
 	      include-day
               (string-capitalize (string (nth day-of-week days)))
               (string-capitalize (string (nth (- month 1) months)))

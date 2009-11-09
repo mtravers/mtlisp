@@ -601,6 +601,8 @@ corresponding function."
 (def-fixnum-op *& *)                     ; these only work in a few cases (like (* 2 <var>))
 (def-fixnum-op /& /)
 
+(def-fixnum-op mod& mod)
+
 (defsubst max& (a b)
   (if (>=& a b)
     a b))

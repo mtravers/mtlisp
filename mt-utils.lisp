@@ -341,6 +341,15 @@ returning the list of results.  Order is maintained as one might expect."
 	(push (funcall fcn e1 e2) (cdr tail))
 	(setf tail (cdr tail))))))
 
+(defun mapsubsets (proc set)
+  "Map PROC over ever subset of SET"
+  (if (null set)
+      (funcall proc nil)
+      (mapsubsets (cdr set) 
+		  #'(lambda (ss)
+		      (funcall proc ss)
+		      (funcall proc (cons (car set) ss))))))
+
 (defun split-list (predicate list)
   "Returns two lists extracted from list based on PREDICATE."
   (let ((wheat '()) (chaff '()))
@@ -514,6 +523,7 @@ returning the list of results.  Order is maintained as one might expect."
 ; +++ destructuring-bind is not CL
 (defmacro def-cached-function (name arglist &body body)
   (let ((ht (make-hash-table :test #'equal)))
+    (setf (get name :cache) ht)		;allows access
     `(defun ,name (&rest args)
        (declare (dynamic-extent args))
        (multiple-value-bind (val found)

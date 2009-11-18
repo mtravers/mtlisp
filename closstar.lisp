@@ -196,6 +196,22 @@ CLOS version 13 August 90
 #+MCL (add-definition-type 'method "METHOD*")
 |#
 
+;;; Not really clos*, but
+#+CCL
+(defgeneric oequal (o1 o2))
+
+#+CCL
+(defmethod oequal ((o1 t) (o2 t))
+  (if (and (ccl::standard-instance-p o1)
+	   (ccl::standard-instance-p o2))
+      (and (eq (type-of o1) (type-of o2))
+	   (let ((c (type-of o1)))
+	     (dolist (s (slots-for-class c) t)
+	       (unless (oequal (slot-value o1 s)
+			       (slot-value o2 s))
+		 (return nil)))))
+      (equal o1 o2)))
+
 (export '(defmethod* defclass*))
 
 (provide :closstar)

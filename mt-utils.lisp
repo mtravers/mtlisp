@@ -516,7 +516,7 @@ returning the list of results.  Order is maintained as one might expect."
 |#
 
 ; Define a memoized function.  The function should be a function in the mathematical sense
-; (a mapping with no state dependencies).  It can't take &rest, &optional, or &key args.
+; (a mapping with no state dependencies).  
 ; Comparision of new args to old is by EQUAL.  Redefining the function resets
 ; the cache.  
 ; +++ handle declarations in body
@@ -1156,6 +1156,8 @@ example:
         (handler-case (progn ,@body)
           (error (condition)
 	    (format *debug-stream* "~%Error in process ~A: ~A" ,name condition))))))
+
+
 
 (provide :mt-utils)
 

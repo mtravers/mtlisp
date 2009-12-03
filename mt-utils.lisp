@@ -489,6 +489,26 @@ returning the list of results.  Order is maintained as one might expect."
           do (setf (aref string i) (aref to pos))))
   string)
 
+(defun ntranslate-string-fast (string from to)
+  (declare (simple-string string from to))
+  (let ((ls (length string)) (lf (length from)))
+    (declare (fixnum ls lf))
+    ;; Completely arbitrary test for using hash algorithm.
+    (if (and (> lf 10) (> ls 100))
+        (let ((ht (make-hash-table :test 'eql)))
+          (loop for i fixnum below lf do
+                (setf (gethash (schar from i) ht) (schar to i)))
+          (loop for i fixnum below ls 
+                as translation = (gethash (schar string i) ht)
+                when translation
+                do (setf (schar string i) translation)
+                ))
+      (loop for i fixnum below ls
+            as pos = (position (schar string i) from)
+            when pos
+            do (setf (schar string i) (schar to pos)))))
+  string)
+
 
 ;;; inefficient, if the purpose is to make long lists manageable.  Easy to fix.
 (defun list-truncate (list length)

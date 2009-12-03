@@ -922,7 +922,7 @@ corresponding function."
   (remove char-bag string :test #'(lambda (a b) (find b a :test #'equal))))
 
 (defun string-remove-whitespace (string)
-  (string-remove-whitespace string *whitespace*))
+  (string-remove-chars string *whitespace*))
 
 ;;; Hash tables
 

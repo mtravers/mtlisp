@@ -313,6 +313,14 @@ Except for removal of EQL occurences, order is maintained as one might expect."
     (t (union* (cons (union (car lists) (cadr lists))
                      (cddr lists))))))
 
+(defun nunion* (lists)
+  "NUNION together an arbitrary number of lists (passed in a containing list)"
+  (case (length lists)
+    (0 nil)
+    (1 (car lists))
+    (t (nunion* (cons (nunion (car lists) (cadr lists))
+		      (cddr lists))))))
+
 (defun maptree (fcn tree)
   (if (listp tree)
       (mapcar #'(lambda (elt) (maptree fcn elt)) tree)

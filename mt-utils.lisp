@@ -220,7 +220,6 @@ NOTE: This is the canonical version!  Accept no substitutes.
      (flet ((sum (thing) (incf %result thing)))
        ,@body)
      %result))
-  
 
 ;;; generalized good iterator.
 
@@ -283,8 +282,6 @@ NOTE: This is the canonical version!  Accept no substitutes.
 	  (push value (cdr tail))
 	  (setf tail (cdr tail)))))))
 
-
-
 (defun mapappend (fcn list)
   "Applies FCN to every element of LIST, appending the results together.
 Order is maintained as one might expect."
@@ -304,22 +301,23 @@ Except for removal of EQL occurences, order is maintained as one might expect."
           (setf (cdr tail) (list result-elt))
           (setf tail (cdr tail)))))))
 
-;;; +++ add key args, also make intersection*
-(defun union* (lists)
+(defun union* (lists &key (test #'eql) (key #'identity))
   "UNION together an arbitrary number of lists (passed in a containing list)"
   (case (length lists)
     (0 nil)
     (1 (car lists))
-    (t (union* (cons (union (car lists) (cadr lists))
-                     (cddr lists))))))
+    (t (union* (cons (union (car lists) (cadr lists) :test test :key key)
+                     (cddr lists))
+	       :test test :key key))))
 
-(defun nunion* (lists)
-  "NUNION together an arbitrary number of lists (passed in a containing list)"
+(defun intersection* (lists &key (test #'eql) (key #'identity))
+  "INTERSECTION together an arbitrary number of lists (passed in a containing list)"
   (case (length lists)
     (0 nil)
     (1 (car lists))
-    (t (nunion* (cons (nunion (car lists) (cadr lists))
-		      (cddr lists))))))
+    (t (intersection* (cons (intersection (car lists) (cadr lists) :test test :key key)
+                     (cddr lists))
+	       :test test :key key))))
 
 (defun maptree (fcn tree)
   (if (listp tree)
@@ -471,6 +469,12 @@ returning the list of results.  Order is maintained as one might expect."
       string
       (format nil "~A..." (subseq string 0 length))))
 
+(defun string-truncate-to-word-boundary (string limit)
+  (if (<= (length string) limit)
+      string
+      (let ((boundary-pos (position #\Space string :from-end t :end limit)))
+	(string+ (subseq string 0 boundary-pos) "..."))))
+
 ;;; From BioBike
 (defun translate-string (string from to)
   #.(doc
@@ -548,7 +552,6 @@ returning the list of results.  Order is maintained as one might expect."
 ; Comparision of new args to old is by EQUAL.  Redefining the function resets
 ; the cache.  
 ; +++ handle declarations in body
-; +++ destructuring-bind is not CL
 (defmacro def-cached-function (name arglist &body body)
   (let ((ht (make-hash-table :test #'equal)))
     (setf (get name :cache) ht)		;allows access
@@ -683,16 +686,17 @@ corresponding function."
     (unless (zerop (logand (ash 1 bit) n) )
       (push bit result))))
 
+(defun sum-list (list)
+  (summing (dolist (elt list) (sum elt))))
+
 (defun average (list)
   (if (null list) 0
-      (/ (summing (dolist (elt list) (sum elt))) (length list))))
+      (/ (sum-list list) (length list))))
 
-;;; won't work on large lists, change to use summing as above +++
 (defun std-dev (list &aux (average (average list)))
-  (sqrt (/ (apply #'+ 
-                   (mapcar #'(lambda (x) (expt (- x average) 2)) 
-                           list))
-            (length list))))
+  (sqrt (/ (summing (dolist (elt list)
+		      (sum (expt (- elt average) 2))))
+	   (length list))))
 
 (defun geo-mean (list)
   (nth-root (apply #'* list) (length list)))

@@ -37,7 +37,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
                 (list ,thing))))
 
 (defmacro pushnew-end (item place &key test)
-  `(if (member ,item ,place :test test)
+  `(if (member ,item ,place :test ,test)
      ,place
      (push-end ,item ,place)))
 

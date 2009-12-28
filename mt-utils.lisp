@@ -221,6 +221,13 @@ NOTE: This is the canonical version!  Accept no substitutes.
        ,@body)
      %result))
 
+(defmacro accumulating (init func &body body)
+  `(let ((%result ,init))
+     (flet ((accumulate (thing)
+	      (setf %result (funcall ,func %result thing))))
+       ,@body)
+     %result))
+
 ;;; generalized good iterator.
 
 ;;; Maximum/minimums
@@ -565,6 +572,21 @@ returning the list of results.  Order is maintained as one might expect."
                  (block ,name
                    (destructuring-bind ,arglist args
                      ,@body))))))))
+
+
+;;; alt version for single argument, uses eql as test, more efficient
+(defmacro def-cached-function-1 (name arglist &body body)
+  (assert (= 1 (length arglist)))
+  (let ((ht (make-hash-table :test #'eql)))
+    (setf (get name :cache) ht)		;allows access
+    `(defun ,name ,arglist
+       (multiple-value-bind (val found)
+	   (gethash ,(car arglist) ,ht)
+	 (if found 
+           val
+           (setf (gethash ,(car arglist) ,ht)
+                 (block ,name
+                     ,@body)))))))
 
 (defun symbolize (thing)
   (etypecase thing

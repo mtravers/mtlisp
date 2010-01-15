@@ -409,6 +409,12 @@ returning the list of results.  Order is maintained as one might expect."
       ((null finger0)
        (nreverse result))))
 
+;;; This is probably not efficient
+(defun big-concatenate-strings (list)
+  (with-output-to-string (out)
+    (dolist (s list)
+      (write-string s out))))
+
 ;;; a much-needed function. this version conses rather more than it should.
 (defun string-replace (string find replace &key (start 0) (end nil) (sequence-type 'string) (test #'char-equal))
   #.(doc
@@ -418,9 +424,13 @@ returning the list of results.  Order is maintained as one might expect."
        (substrings nil)
        (subst-start t))
       ((null subst-start)
-       (apply #'concatenate
-              sequence-type
-              (nreverse substrings)))
+       ;; Apply is limited to some relatively small number of args
+       (if (and (eq sequence-type 'string)
+		(> (length substrings) 200))
+	   (big-concatenate-strings (nreverse substrings))
+	   (apply #'concatenate
+		  sequence-type
+		  (nreverse substrings))))
     (setq subst-start (search find string :start2 from :end2 end :test test))
     (push (subseq string from subst-start) substrings)
     (when subst-start

@@ -209,6 +209,14 @@ For more information, see lisp-unit.html.
 
 ;;; RUN-TESTS
 
+;;; mt addition: run tests in multiple packages with unified running total
+(defun run-tests-packages (packages)
+  (run-test-thunks
+   (mt:mapappend #'(lambda (package)
+		     (mapcar #'(lambda (name) (get-test-thunk name package))
+			     (get-tests package)))
+		 packages)))
+
 (defmacro run-all-tests (package &rest tests)
   `(let ((*package* (find-package ',package)))
      (run-tests
@@ -222,7 +230,7 @@ For more information, see lisp-unit.html.
   (mapcar #'(lambda (name) (get-test-thunk name package))
     names))
 
-(defun get-test-thunk (name package)
+(defun get-test-thunk (name &optional (package (symbol-package name)))
   (assert (get-test-code name package) (name package)
           "No test defined for ~S in package ~S" name package)
   (list name (coerce `(lambda () ,@(get-test-code name)) 'function)))

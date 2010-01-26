@@ -809,6 +809,16 @@ corresponding function."
                   (package-name package)
                   (adjoin nickname (package-nicknames package) :test #'string-equal)))
 
+;;; Not working and not used.
+(defun use-package-safely (used user)
+  (do-symbols (s used)
+    (when (and (externalp s)
+	       (find-symbol (symbol-name s) user))
+      (shadowing-import s user)
+      (export s user)))
+  (use-package usedq user))
+
+
 ;;; Time
 
 ;;; these are slightly mistitled, since they don't necessarily return strings anymore

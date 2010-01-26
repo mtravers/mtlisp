@@ -8,7 +8,8 @@
     :serial t
     :depends-on (#-ACL :acl-compat)
     :components 
-    ((:file "mt-pkg")
+    ((:file "lisp-unit")
+     (:file "mt-pkg")
      (:file "pre-utils")
      (:file "mt-utils")
      (:file "closstar")
@@ -17,5 +18,4 @@
 ; this has disappeared
 ;     #+:allegro
 ;     (:file "acl-compat")
-     (:file "lisp-unit")
      ))

@@ -214,10 +214,10 @@ For more information, see lisp-unit.html.
 ;;; mt addition: run tests in multiple packages with unified running total
 (defun run-tests-packages (packages)
   (run-test-thunks
-   (mt:mapappend #'(lambda (package)
-		     (mapcar #'(lambda (name) (get-test-thunk name package))
-			     (get-tests package)))
-		 packages)))
+   (mapcan #'(lambda (package)
+	       (mapcar #'(lambda (name) (get-test-thunk name package))
+		       (get-tests package)))
+	   packages)))
 
 (defmacro run-all-tests (package &rest tests)
   `(let ((*package* (find-package ',package)))
@@ -356,11 +356,6 @@ For more information, see lisp-unit.html.
 	(run-tests-packages packages)))
     (when strings
       (funcall failure-continuation (format nil "~{~A~%~}" (nreverse strings))))))
-
-
-
-(defun email-failure-listener (passed type name form expected actual extras test-count pass-count)
-  
 
 (defun test-passed-p (type expected actual test)
   (ecase type

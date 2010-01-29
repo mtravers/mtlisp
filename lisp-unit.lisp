@@ -248,7 +248,7 @@ For more information, see lisp-unit.html.
 ;;; Public functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun get-test-code (name &optional (package *package*))
+(defun get-test-code (name &optional (package (symbol-package name)))
   (let ((table (get-package-table package)))
     (unless (null table)
       (gethash name table))))

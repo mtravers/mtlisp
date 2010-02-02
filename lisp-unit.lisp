@@ -112,6 +112,7 @@ For more information, see lisp-unit.html.
            #:use-debugger
            #:with-test-listener
 	   #:run-tests-with-failure-continuation
+	   #:assert-runs
 	   ))
 
 (in-package #:lisp-unit)
@@ -462,6 +463,20 @@ For more information, see lisp-unit.html.
        (listp l2)
        (subsetp l1 l2 :test test)
        (subsetp l2 l1 :test test)))
+
+
+;;; MT addition -- this asserts that the body runs without errors.
+(defmacro assert-runs (token &body body)
+  `(multiple-value-bind (result err)
+       (ignore-errors ,@body)
+     (internal-assert :equal ,token
+		      #'(lambda () (when err (princ-to-string err)))
+		      #'(lambda () nil)
+		      #'(lambda () nil)
+		      #'eql)))
+		      
+		      
+			
 
 
 (provide "lisp-unit")

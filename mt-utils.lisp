@@ -1038,11 +1038,12 @@ corresponding function."
   (setf (getf (slot-value o 'plist) property)
         value))
 
+#+:CCL
 (defun call-if (gf &rest args)
   #.(doc
      "call a generic function iff it is implemented for the args."
      "Note: this won't work when a gf gets encapsulated (ie, by trace or metering)")
-  (when (apply #'method-exists-p gf args)
+  (when (apply #'ccl:method-exists-p gf args)
     (apply gf args)))
 
 ;;; Anaphoric macros (from _On Lisp_ by Paul Graham)

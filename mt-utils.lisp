@@ -482,12 +482,14 @@ returning the list of results.  Order is maintained as one might expect."
   (princ-to-string obj))
 
 (defun string-truncate (string length)
-  (if (<= (length string) length)
+  (if (or (null length)
+	  (<= (length string) length))
       string
       (format nil "~A..." (subseq string 0 length))))
 
 (defun string-truncate-to-word-boundary (string limit)
-  (if (<= (length string) limit)
+  (if (or (null limit)
+	  (<= (length string) limit))
       string
       (let ((boundary-pos (position #\Space string :from-end t :end limit)))
 	(string+ (subseq string 0 boundary-pos) "..."))))

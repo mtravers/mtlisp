@@ -31,6 +31,9 @@ NOTE: This is the canonical version!  Accept no substitutes.
 (defmacro deletef (thing place &rest delete-args)
   `(setf ,place (delete ,thing ,place ,@delete-args)))
 
+(defmacro removef (thing place &rest remove-args)
+  `(setf ,place (remove ,thing ,place ,@remove-args)))
+
 (defmacro push-end (thing place)
   `(setf ,place
          (nconc ,place

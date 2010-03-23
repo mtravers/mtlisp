@@ -70,6 +70,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
     (subseq list 0 n)))
 
 (defun break-list (l n)
+  "Break LIST into sublists of length N"
   (if l
       (cons (firstn l n)
 	    (break-list (nthcdr n l) n))))
@@ -372,6 +373,8 @@ returning the list of results.  Order is maintained as one might expect."
     (dolist (elt list (values wheat chaff))
       (if (funcall predicate elt)
 	  (push elt wheat) (push elt chaff)))))
+
+
 
 ; +++ key args are slow
 (defun filter (predicate list &key key &aux wheat)

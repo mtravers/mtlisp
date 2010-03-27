@@ -1,3 +1,10 @@
-A collection of smallish Lisp utilities by Mike Travers (mt@alum.mit.edu)
+A collection of smallish Common Lisp utilities by Mike Travers (mt@alum.mit.edu)
 
+Requires:
+- acl-compat (on non ACL Lisps)
+(require :asdf-install)
+(asdf-install:install :acl-compat)
+
+
+Load:
 (load "load.lisp")

@@ -4,7 +4,7 @@
 
  Random Lisp utilities
 
-Copyright © 1994-2008 Michael Travers
+Copyright © 1994-2009 Michael Travers
 Permission is given to use and modify this code as long
 as the copyright notice is preserved.
 
@@ -21,20 +21,26 @@ ACL, and ABCL as well.
 Many items here are borrowed from others. In most cases the source
 is acknowledged.
 
+NOTE: This is the canonical version!  Accept no substitutes.
+
 ###################################################################### |#
+
 
 ;;; Generalized variables, lists, binding, etc.
 
 (defmacro deletef (thing place &rest delete-args)
   `(setf ,place (delete ,thing ,place ,@delete-args)))
 
+(defmacro removef (thing place &rest remove-args)
+  `(setf ,place (remove ,thing ,place ,@remove-args)))
+
 (defmacro push-end (thing place)
   `(setf ,place
          (nconc ,place
                 (list ,thing))))
 
-(defmacro pushnew-end (item place)
-  `(if (member ,item ,place)
+(defmacro pushnew-end (item place &key test)
+  `(if (member ,item ,place :test ,test)
      ,place
      (push-end ,item ,place)))
 
@@ -57,10 +63,17 @@ is acknowledged.
 		       (return list))
 		(return (cons new list)))))))
 
+;;; or subseq-safe
 (defun firstn (list n)
   (if (>= n (length list))
     list
     (subseq list 0 n)))
+
+(defun break-list (l n)
+  "Break LIST into sublists of length N"
+  (if l
+      (cons (firstn l n)
+	    (break-list (nthcdr n l) n))))
 
 ;;; If the lists are not sets (have duplicated items) result is undefined
 (defun set-equal (l1 l2 &optional (test #'eq))
@@ -70,7 +83,7 @@ is acknowledged.
            (return nil)))))
 
 ;;; for descending down alist type structures, esp. those in JSON like form
-(defun findprop (structure prop)
+(defun findprop (prop structure)
   (cadr (member prop structure :test #'equal)))
 
 ;;; recursive version of above
@@ -78,6 +91,15 @@ is acknowledged.
   (if (null props) 
       structure
       (apply #'findprops (findprop structure (car props)) (cdr props))))
+
+;;; From BioLisp
+(defmacro assocadr (key alist &rest assoc-keywords)
+  "Shorthand for (CADR (ASSOC ...))"
+  `(cadr (assoc ,key ,alist ,@assoc-keywords)))
+
+(defmacro assocdr (key alist &rest assoc-keywords)
+  "Shorthand for (CDR (ASSOC ...))"
+  `(cdr (assoc ,key ,alist ,@assoc-keywords)))
 
 ;;; mv-let*: lets the car of a let binding form be a list
 ;;; elements of which get bound to multiple values.
@@ -159,7 +181,11 @@ is acknowledged.
 (defun circular-list (&rest elements)
   (rplacd (last elements) elements))
 
-
+(defun fringe (list)
+  (cond ((null list) nil)
+	((listp list)
+	 (append (fringe (car list)) (fringe (cdr list))))
+	(t (list list))))
 ;;; Iteration and Mapping
 
 ;;; Like dolist, but works with any sequence
@@ -188,10 +214,23 @@ is acknowledged.
 ;;; do-collect
 (defmacro collecting (&body body)
   `(let ((%results nil))
-     (flet ((collect (thing) (push thing %results)))
+     (flet ((collect (thing) (push thing %results))
+	    (collect-new (thing &optional (test #'eql)) (pushnew thing %results :test test)))
        ,@body)
      (nreverse %results)))
-  
+
+(defmacro summing (&body body)
+  `(let ((%result 0))
+     (flet ((sum (thing) (incf %result thing)))
+       ,@body)
+     %result))
+
+(defmacro accumulating (init func &body body)
+  `(let ((%result ,init))
+     (flet ((accumulate (thing)
+	      (setf %result (funcall ,func %result thing))))
+       ,@body)
+     %result))
 
 ;;; generalized good iterator.
 
@@ -263,20 +302,47 @@ Order is maintained as one might expect."
 	(setf (cdr tail) (list result-elt))
 	(setf tail (cdr tail))))))
 
-(defun mapunion (fcn list)
+(defun mapunion (fcn list &key (test #'eql) (key #'identity))
   "Applies FCN to every element of LIST, unioning the results together.
 Except for removal of EQL occurences, order is maintained as one might expect."
   (let* ((head (list '())) (tail head))
     (dolist (elt list (cdr head))
       (dolist (result-elt (funcall fcn elt))
-	(unless (member result-elt head)
-	  (setf (cdr tail) (list result-elt))
-	  (setf tail (cdr tail)))))))
+        (unless (member result-elt head :test test :key key)
+          (setf (cdr tail) (list result-elt))
+          (setf tail (cdr tail)))))))
+
+(defun union* (lists &key (test #'eql) (key #'identity))
+  "UNION together an arbitrary number of lists (passed in a containing list)"
+  (case (length lists)
+    (0 nil)
+    (1 (car lists))
+    (t (union* (cons (union (car lists) (cadr lists) :test test :key key)
+                     (cddr lists))
+	       :test test :key key))))
+
+(defun intersection* (lists &key (test #'eql) (key #'identity))
+  "INTERSECTION together an arbitrary number of lists (passed in a containing list)"
+  (case (length lists)
+    (0 nil)
+    (1 (car lists))
+    (t (intersection* (cons (intersection (car lists) (cadr lists) :test test :key key)
+                     (cddr lists))
+	       :test test :key key))))
 
 (defun maptree (fcn tree)
   (if (listp tree)
       (mapcar #'(lambda (elt) (maptree fcn elt)) tree)
     (funcall fcn tree)))
+
+;;; works on structure with dotted lists
+(defun maptree-dots (fcn tree)
+  (cond ((null tree) nil)
+	((listp tree)
+	 (cons (maptree-dots fcn (car Tree))
+	       (maptree-dots fcn (cdr Tree))))
+	(t (funcall fcn tree))))
+
 
 (defun mapsum (fcn list)
   (let ((result 0))
@@ -292,12 +358,23 @@ returning the list of results.  Order is maintained as one might expect."
 	(push (funcall fcn e1 e2) (cdr tail))
 	(setf tail (cdr tail))))))
 
+(defun mapsubsets (proc set)
+  "Map PROC over ever subset of SET"
+  (if (null set)
+      (funcall proc nil)
+      (mapsubsets (cdr set) 
+		  #'(lambda (ss)
+		      (funcall proc ss)
+		      (funcall proc (cons (car set) ss))))))
+
 (defun split-list (predicate list)
   "Returns two lists extracted from list based on PREDICATE."
   (let ((wheat '()) (chaff '()))
     (dolist (elt list (values wheat chaff))
       (if (funcall predicate elt)
 	  (push elt wheat) (push elt chaff)))))
+
+
 
 ; +++ key args are slow
 (defun filter (predicate list &key key &aux wheat)
@@ -325,8 +402,12 @@ returning the list of results.  Order is maintained as one might expect."
       (setf (char new-string from) char1))))
 |#
 
-;;; Return substrings separated by separator character.  
+(defun string+ (&rest args)
+  "Concatenate the elements of ARGS."
+  (apply #'concatenate 'string args))
+
 (defun parse-substrings (string separator)
+  "Return substrings separated by separator character.  "
   (do ((result nil (cons (subseq string finger0 finger1) result))
        (finger0 0 (and finger1 (1+ finger1)))
        (finger1 (position separator string) (and finger1
@@ -334,21 +415,52 @@ returning the list of results.  Order is maintained as one might expect."
       ((null finger0)
        (nreverse result))))
 
+;;; This is probably not efficient
+(defun big-concatenate-strings (list)
+  (with-output-to-string (out)
+    (dolist (s list)
+      (write-string s out))))
+
 ;;; a much-needed function. this version conses rather more than it should.
-(defun string-replace (string find replace &key (start 0) (end nil) (sequence-type 'string))
+(defun string-replace (string find replace &key (start 0) (end nil) (sequence-type 'string) (test #'char-equal))
+  #.(doc
+     "Replace occurences of FIND in STRING."
+     "REPLACE can be a string or a function which takes the matched substring and returns a replacement (can be used to preserve case, ie).")
   (do ((from start)
        (substrings nil)
        (subst-start t))
       ((null subst-start)
-       (apply #'concatenate
-              sequence-type
-              (nreverse substrings)))
-    (setq subst-start (search find string :start2 from :end2 end))
+       ;; Apply is limited to some relatively small number of args
+       (if (and (eq sequence-type 'string)
+		(> (length substrings) 200))
+	   (big-concatenate-strings (nreverse substrings))
+	   (apply #'concatenate
+		  sequence-type
+		  (nreverse substrings))))
+    (setq subst-start (search find string :start2 from :end2 end :test test))
     (push (subseq string from subst-start) substrings)
     (when subst-start
       (setf from (+ subst-start (length find)))
-      (push replace substrings))
+      (push
+       (if (stringp replace)
+           replace
+           (funcall replace (subseq string subst-start from)))
+       substrings))
     ))
+
+(defun string-upper-case-p (s)
+  (every #'upper-case-p s))
+
+(defun string-prefix-equals (string prefix)
+  "T if STRING begins with PREFIX."
+  (and (>= (length string) (length prefix))
+       (string-equal string prefix :end1 (length prefix))))
+
+(defmacro push-string (place add)
+  `(setf ,place (concatenate 'string ,place ,add)))
+
+(defun first-line (string)
+  (car (parse-substrings string #\Newline)))
 
 (defun fast-string (obj)
   (typecase obj
@@ -357,74 +469,95 @@ returning the list of results.  Order is maintained as one might expect."
     (symbol (symbol-name obj))          ;what about package?
     (t (fast-princ-to-string obj))))
 
-(defun fast-temp-string (obj)
-  (typecase obj
-    (null "")
-    (string obj)
-    (symbol (symbol-name obj))          ;what about package?
-    (t (fast-princ-to-temp-string obj))))
-
-;;; +++ this stuff is MCL dependent.
-
-#|  Class is in Clozure, but not working the same way apparently
 #+MCL
 (defvar *fast-princ-to-string-stream* 
-  (make-instance 'ccl::string-output-stream
-    :string (make-array 100
-                        :element-type 'character
-                                      :adjustable t
-                                      :fill-pointer 0)))
+  (ccl::%make-string-output-stream (make-array 100
+					       :element-type 'character
+					       :adjustable t
+					       :fill-pointer 0)))
 
+;;; about twice as fast
 #+MCL
 (defun fast-princ-to-string (obj)
   (princ obj *fast-princ-to-string-stream*)
   (ccl::get-output-stream-string *fast-princ-to-string-stream*))
 
+;;; for other implementations, do the normal thing
 #-MCL
-|#
 (defun fast-princ-to-string (obj)
   (princ-to-string obj))
 
-;;; This version returns a string that will change on the next call!
-#+MCL
-(defun fast-princ-to-temp-string (obj)
-  (let ((string (slot-value *fast-princ-to-string-stream* 'ccl::my-string)))
-    (setf (fill-pointer string) 0)
-    (princ obj *fast-princ-to-string-stream*)
-    string))
-
-#+MCL
-(defun fast-prin1-to-temp-string (obj)
-  (let ((string (slot-value *fast-princ-to-string-stream* 'ccl::my-string)))
-    (setf (fill-pointer string) 0)
-    (prin1 obj *fast-princ-to-string-stream*)
-    string))
-
-#+MCL
-(defun fast-pprint-to-temp-string (obj)
-  (let ((string (slot-value *fast-princ-to-string-stream* 'ccl::my-string)))
-    (setf (fill-pointer string) 0)
-    (pprint obj *fast-princ-to-string-stream*)
-    string))
-
-#+MCL
-(defun fast-format-to-temp-string (control &rest args)
-  (let ((string (slot-value *fast-princ-to-string-stream* 'ccl::my-string)))
-    (setf (fill-pointer string) 0)
-    (apply #'format *fast-princ-to-string-stream* control args)
-    string))
-
-
 (defun string-truncate (string length)
-  (if (<= (length string) length)
+  (if (or (null length)
+	  (<= (length string) length))
       string
       (format nil "~A..." (subseq string 0 length))))
 
+(defun string-truncate-to-word-boundary (string limit)
+  (if (or (null limit)
+	  (<= (length string) limit))
+      string
+      (let ((boundary-pos (position #\Space string :from-end t :end limit)))
+	(string+ (subseq string 0 boundary-pos) "..."))))
+
+;;; From BioBike
+(defun translate-string (string from to)
+  #.(doc
+     "Changes the characters in a string from one set to another. "
+     "See the documentation for NTRANSLATE-STRING.")
+  (ntranslate-string (copy-seq string) from to))
+
+(defun ntranslate-string (string from to)
+  #.(doc
+     "Destructively changes the characters in a string from one set to "
+     "another.  For example: (ntranslate-string \"This\" "
+     "\"abcdefghijklmnopqrstuvwxyz\" \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\") " 
+     "will change the string to THIS and return it. "
+     "NOTE THAT THIS ACTUALLY MODIFIES THE ORIGNAL STRING; "
+     "If you want to preserve the string, use TRANSLATE-STRING."
+     )
+  (if (and (simple-string-p string) 
+           (simple-string-p from) 
+           (simple-string-p to))
+      (ntranslate-string-fast string from to)
+    (loop for i below (length string)
+          as pos = (position (aref string i) from)
+          when pos
+          do (setf (aref string i) (aref to pos))))
+  string)
+
+(defun ntranslate-string-fast (string from to)
+  (declare (simple-string string from to))
+  (let ((ls (length string)) (lf (length from)))
+    (declare (fixnum ls lf))
+    ;; Completely arbitrary test for using hash algorithm.
+    (if (and (> lf 10) (> ls 100))
+        (let ((ht (make-hash-table :test 'eql)))
+          (loop for i fixnum below lf do
+                (setf (gethash (schar from i) ht) (schar to i)))
+          (loop for i fixnum below ls 
+                as translation = (gethash (schar string i) ht)
+                when translation
+                do (setf (schar string i) translation)
+                ))
+      (loop for i fixnum below ls
+            as pos = (position (schar string i) from)
+            when pos
+            do (setf (schar string i) (schar to pos)))))
+  string)
+
+
+;;; inefficient, if the purpose is to make long lists manageable.  Easy to fix.
+(defun list-truncate (list length)
+  (if (> (length list) length)
+      (subseq list 0 length)
+      list))
+
 ;;; Function definition
 
-;;; Define an inline function
 #-ABCL ; already built in, hopefully compatible
 (defmacro defsubst (name args &body body)
+  "Define an inline function."
   `(progn
      (declaim (inline ,name))       
      (defun ,name ,args
@@ -440,13 +573,13 @@ returning the list of results.  Order is maintained as one might expect."
 |#
 
 ; Define a memoized function.  The function should be a function in the mathematical sense
-; (a mapping with no state dependencies).  It can't take &rest, &optional, or &key args.
+; (a mapping with no state dependencies).  
 ; Comparision of new args to old is by EQUAL.  Redefining the function resets
 ; the cache.  
 ; +++ handle declarations in body
-; +++ destructuring-bind is not CL
 (defmacro def-cached-function (name arglist &body body)
   (let ((ht (make-hash-table :test #'equal)))
+    (setf (get name :cache) ht)		;allows access
     `(defun ,name (&rest args)
        (declare (dynamic-extent args))
        (multiple-value-bind (val found)
@@ -459,6 +592,33 @@ returning the list of results.  Order is maintained as one might expect."
                      ,@body))))))))
 
 
+;;; alt version for single argument, uses eql as test, more efficient
+(defmacro def-cached-function-1 (name arglist &body body)
+  (assert (= 1 (length arglist)))
+  (let ((ht (make-hash-table :test #'eql)))
+    (setf (get name :cache) ht)		;allows access
+    `(defun ,name ,arglist
+       (multiple-value-bind (val found)
+	   (gethash ,(car arglist) ,ht)
+	 (if found 
+           val
+           (setf (gethash ,(car arglist) ,ht)
+                 (block ,name
+                     ,@body)))))))
+
+(defun symbolize (thing)
+  (etypecase thing
+    (symbol thing)
+    (string (keywordize thing))))
+
+;;; Stolen (with mods) from Alexandria
+(defmacro named-lambda (name lambda-list &body body)
+  "Expands into a lambda-expression within whose BODY NAME denotes the
+corresponding function."
+  (let ((fname (symbolize name)))
+    `(labels ((,fname ,lambda-list ,@body))
+     #',fname)))
+
 ;;; Randomness
 
 (defun random-element (list)
@@ -466,6 +626,7 @@ returning the list of results.  Order is maintained as one might expect."
        (nth (random (length list)) list)))
 
 (defun arand (center range)
+  "Return a random number from the range [center-range, center+range]"
   (+ center (random (* 2.0 range)) (- range)))
 
 ;;; Numbers
@@ -521,6 +682,8 @@ returning the list of results.  Order is maintained as one might expect."
 (def-fixnum-op *& *)                     ; these only work in a few cases (like (* 2 <var>))
 (def-fixnum-op /& /)
 
+(def-fixnum-op mod& mod)
+
 (defsubst max& (a b)
   (if (>=& a b)
     a b))
@@ -563,15 +726,17 @@ returning the list of results.  Order is maintained as one might expect."
     (unless (zerop (logand (ash 1 bit) n) )
       (push bit result))))
 
+(defun sum-list (list)
+  (summing (dolist (elt list) (sum elt))))
+
 (defun average (list)
   (if (null list) 0
-      (/ (apply #'+ list) (length list))))
+      (/ (sum-list list) (length list))))
 
 (defun std-dev (list &aux (average (average list)))
-  (sqrt (/ (apply #'+ 
-                   (mapcar #'(lambda (x) (expt (- x average) 2)) 
-                           list))
-            (length list))))
+  (sqrt (/ (summing (dolist (elt list)
+		      (sum (expt (- elt average) 2))))
+	   (length list))))
 
 (defun geo-mean (list)
   (nth-root (apply #'* list) (length list)))
@@ -580,6 +745,17 @@ returning the list of results.  Order is maintained as one might expect."
   (if (> x 0) (exp (/ (log x) n))
       (error "In NTH-ROOT, X=~S is not positive." x)))
 
+(defun coerce-number (thing &key no-error (default thing))
+  (typecase thing
+    (number thing)
+    (string 
+     (let ((n (read-from-string thing)))
+       (if no-error
+	   (if (numberp n) n default)
+	   (progn
+	     (assert (numberp n))
+	     n))))
+    (t (error "can't coerce ~A to a number" thing))))
 
 ;;; Fast versions of non-arithmetic functions
 
@@ -617,7 +793,7 @@ returning the list of results.  Order is maintained as one might expect."
 
 ;;; package defaults to *package*, which is not always right
 (defun symbol-conc (&rest parts)
-  (intern (apply #'concatenate 'string (mapcar 'string parts))))
+  (intern (apply #'concatenate 'string (mapcar 'fast-string parts))))
 
 ;;; +++ causing package problems
 '(defun keyword (symbol)
@@ -626,10 +802,14 @@ returning the list of results.  Order is maintained as one might expect."
 (defun keywordize (symbol)
   (intern (string symbol) (find-package :keyword)))
 
+(defun up-keywordize (symbol)
+  (intern (string-upcase (string symbol)) (find-package :keyword)))
+
 ;;; CL provides no externalp function, and neither does MCL (although it keeps this info with the symbol).
 (defun externalp (symbol)
   (multiple-value-bind (ignore type) 
       (find-symbol (symbol-name symbol) (symbol-package symbol))
+    #-CCL (declare (ignore ignore))
     (eq type :external)))
 
 (defun add-nickname (package nickname)
@@ -641,14 +821,32 @@ returning the list of results.  Order is maintained as one might expect."
 
 ;;; these are slightly mistitled, since they don't necessarily return strings anymore
 
-(defun date-time-string (universal-time &optional (include-time t) (stream nil))
+(defun date-time-string (universal-time &key (include-time t) (include-date t) (include-day t) (stream nil))
+  #.(doc "Turn a universal time into a string.  Arguments are fairly obvious."
+	 ":include-day and :include-date can take the value :unless-today, in which case date or day"
+	 "is only included if the time is not today.")
   (multiple-value-bind (second minute hour date month year day-of-week) 
                        (decode-universal-time universal-time)
     (declare (ignore second))
-    (let ((months '(January February March April May June 
+    (let* ((months '(January February March April May June 
                     July August September October November December))
-          (days '(monday tuesday wednesday thursday friday saturday sunday)))
-      (format stream "~A ~A ~A, ~A~:[~; ~A:~2,'0D~A~]" 
+          (days '(monday tuesday wednesday thursday friday saturday sunday))
+	  (today? (multiple-value-bind (nsecond nminute nhour ndate nmonth nyear)
+		      (decode-universal-time (get-universal-time))
+		    (declare (ignore nsecond nminute nhour))
+		    (and (= ndate date)
+			 (= nmonth month)
+			 (= nyear year))))
+	  (include-day (if (eq include-day :unless-today)
+			   (not today?)
+			   include-day))
+	  (include-date (if (eq include-date :unless-today)
+			   (not today?)
+			   include-date))
+	  )
+      (format stream "~:[~5*~;~:[~*~;~A ~]~A ~A, ~A~]~:[~; ~A:~2,'0D~A~]" 
+	      include-date
+	      include-day
               (string-capitalize (string (nth day-of-week days)))
               (string-capitalize (string (nth (- month 1) months)))
               date year 
@@ -691,6 +889,13 @@ returning the list of results.  Order is maintained as one might expect."
       (return)
       (write-char char out))))
 
+(defun stream-copy-by-lines (in out)
+  (do (line) (())
+    (setq line (read-line in nil :eof))
+    (if (eq line :eof)
+      (return)
+      (write-line line out))))
+
 (defun file-copy (in out)
   (with-open-file (ins in)
     (with-open-file (outs out :direction :output)
@@ -703,12 +908,13 @@ returning the list of results.  Order is maintained as one might expect."
       (write struct :stream stream))))
 
 (defun read-until (stream end-char-or-pred &optional (string (new-string)) untyi-end?)
-  (do ((char (read-char stream) (read-char stream) ))
-      ((if (characterp end-char-or-pred)
-         (char= char end-char-or-pred)
-         (funcall end-char-or-pred char))
-       (when untyi-end?
-         (stream-untyi stream char))
+  (do ((char (read-char stream nil :eof) (read-char stream nil :eof) ))
+      ((cond ((characterp end-char-or-pred)
+	      (char= char end-char-or-pred))
+	     ((eq char :eof))
+	     (t (funcall end-char-or-pred char)))
+       (when (and untyi-end? (characterp char))
+         (unread-char char stream))
        (values string char))
     (when string 
       (vector-push-extend char string))))
@@ -727,11 +933,9 @@ returning the list of results.  Order is maintained as one might expect."
 
 (defvar *whitespace* '(#\Space #\Tab #\Return #\Newline #\Page #\Null #\Linefeed #+MCL #\312))
 
-(defun string-split (str char &key count)
-  ;; given a string return a list of the strings between occurances
-  ;; of the given character.
-  ;; If the character isn't present then the list will contain just
-  ;; the given string.
+(defun string-split (str &optional (char #\space) &key count)
+  #.(doc
+     "Given a string STR, return a list of the strings between occurances of CHAR.")
   (let ((loc (position char str))
 	(start 0)
 	(res))
@@ -751,7 +955,7 @@ returning the list of results.  Order is maintained as one might expect."
 		 (push "" res))
 	     (return (nreverse res)))))))
 
-(defun string-split-words (str)
+(defun string-split-words (str &optional (whitespace *whitespace*))
   ;; split the given string into words (items separated by white space)
   ;;
   (let ((state 0)
@@ -765,7 +969,7 @@ returning the list of results.  Order is maintained as one might expect."
       (if (>= i len)
 	  (setq ch #\space)
 	  (setq ch (char str i)))
-      (setq spacep (fast-whitespacep ch))
+      (setq spacep (fast-whitespacep ch whitespace))
       (case state
 	(0  ; looking for non-space
 	 (if (not spacep)
@@ -779,13 +983,18 @@ returning the list of results.  Order is maintained as one might expect."
       (incf i))
     (nreverse res)))
 
-(defun fast-whitespacep (char)
-  (declare (optimize (speed 3) (safety 0)))
-  (member char *whitespace* :test #'eql))
+(defun fast-whitespacep (char &optional (whitespace *whitespace*))
+  #-:SBCL (declare (optimize (speed 3) (safety 0)))
+  (member (the char char) whitespace :test #'eql))
 
 (defun string-trim-whitespace (string)
   (string-trim *whitespace* string))
 
+(defun string-remove-chars (string char-bag)
+  (remove char-bag string :test #'(lambda (a b) (find b a :test #'equal))))
+
+(defun string-remove-whitespace (string)
+  (string-remove-chars string *whitespace*))
 
 ;;; Hash tables
 
@@ -801,15 +1010,22 @@ returning the list of results.  Order is maintained as one might expect."
            ht)
     result))
 
-;;; CLOS
+(defun hash-keys (ht)
+  (loop for k being the hash-keys of ht collect k))
+
+;;; CLOS utilities
 
 (defmethod subclasses ((c class))
-  (remove-duplicates
-   (cons c (mapcan #'subclasses (class-direct-subclasses c)))))
+   (remove-duplicates
+    (transitive-closure c 
+			#+:CCL #'ccl:class-direct-subclasses
+			#+:ACL #'mop:class-direct-subclasses)))
 
 (defmethod superclasses ((c class))
   (remove-duplicates
-   (cons c (mapcan #'superclasses (class-direct-superclasses c)))))
+   (transitive-closure c 
+		       #+:CCL #'ccl:class-direct-superclasses
+		       #+:ACL #'mop:class-direct-superclasses)))
 
 (defclass plist-mixin () ((plist :initform nil)))
 
@@ -820,10 +1036,12 @@ returning the list of results.  Order is maintained as one might expect."
   (setf (getf (slot-value o 'plist) property)
         value))
 
-;;; call a generic function iff it is implemented for the args
-; note: this won't work when a gf gets encapsulated (ie, by trace or metering)
+#+:CCL
 (defun call-if (gf &rest args)
-  (when (apply #'method-exists-p gf args)
+  #.(doc
+     "call a generic function iff it is implemented for the args."
+     "Note: this won't work when a gf gets encapsulated (ie, by trace or metering)")
+  (when (apply #'ccl:method-exists-p gf args)
     (apply gf args)))
 
 ;;; Anaphoric macros (from _On Lisp_ by Paul Graham)
@@ -848,7 +1066,9 @@ returning the list of results.  Order is maintained as one might expect."
           (sym (gensym)))               ; used so that it is bound only around rhs of clause
       `(let ((,sym ,(car clause)))
          (if ,sym
-           (let ((it ,sym)) ,@(cdr clause))
+           (let ((it ,sym))
+	     #+CCL (declare (ccl::ignore-if-unused it))
+	     ,@(cdr clause))
            (acond ,@(cdr clauses)))))))
 
 (defmacro alambda (args &body body)
@@ -874,6 +1094,29 @@ Why is this easier than writing a lambda expression? Well, if it was scheme we c
   (define numsort (rcurry sort <))
 which is nice and compact. But, this isn't Scheme. Still, these are occasionally useful.
  |#
+
+(defun transitive-closure (thing proc)
+  #.(doc 
+     "PROC is a procedure of one arg that returns a list."
+     "Thing is a list of starting points, or a single non-list")
+  (do ((done nil)
+       (fringe (if (listp thing) thing (list thing))))
+      ((null fringe) done)
+    (let ((new (pop fringe)))
+      (push new done)
+      (dolist (obj (funcall proc new))
+	(unless (member obj done)
+	  (push obj fringe))))))
+
+(defun transitive-closure-procedure (proc)
+  (rcurry #'transitive-closure proc))
+
+#|
+example:
+(defun all-values (f) (collecting (for-all-frames (f) (for-frame-slots (f s v) (dolist (vv v) (collect-new vv))))))
+
+(funcall (mt::transitive-closure-procedure #'all-values) a-frame)
+|#
 
 ;;; Saving and restoring
 
@@ -903,16 +1146,28 @@ which is nice and compact. But, this isn't Scheme. Still, these are occasionally
   (let ((setter (symbol-conc 'set- name)))
     `(progn
        (defmacro ,name (obj)
-         `(not (zerop& (logand& (,,field ,obj) ,,(lsh 1 pos)))))
+         `(not (zerop& (logand& (,,field ,obj) ,,(expt 2 pos)))))
        (defmacro ,setter (obj new-val)
          (once-only (obj new-val)
            `(progn
               (setf (,,field ,obj)
                   (if ,new-val
-                    (logior& ,,(lsh 1 pos) (,,field ,obj))
-                    (logandc1& ,,(lsh 1 pos) (,,field ,obj))))          ; +++ not inlined in MCL3?
+                    (logior& ,,(expt 2 pos) (,,field ,obj))
+                    (logandc1& ,,(expt 2 pos) (,,field ,obj))))          ; +++ not inlined in MCL3?
               ,new-val)))
        (defsetf ,name ,setter))))
+
+(defun getbit (n pos)
+  (not (zerop& (logand& n (expt 2 pos)))))
+
+(defun setbit (n pos v)
+  (if v 
+      (logior& n (expt 2 pos))
+      n))
+
+(defun xor (a b)
+  (and (or a b)
+       (not (and a b))))
 
 ;;; Debugging
 
@@ -945,18 +1200,6 @@ which is nice and compact. But, this isn't Scheme. Still, these are occasionally
             (format *debug-stream* "~%Error: ~A~%" condition)
 	    condition)))
 
-          
-;;; Proc is a procedure of one arg that returns a list
-(defun transitive-closure (thing proc)
-  (do ((done nil)
-       (fringe (list thing)))
-      ((null fringe) done)
-    (let ((new (pop fringe)))
-      (push new done)
-      (dolist (obj (funcall proc new))
-	(unless (member obj done)
-	  (push obj fringe))))))	
-
 (defmacro let*-debug (forms &body body)
   `(let* ,(mapcar #'(lambda (form)
 		      `(,(car form)
@@ -965,7 +1208,29 @@ which is nice and compact. But, this isn't Scheme. Still, these are occasionally
 		  forms)
      ,@body))
 
-      
+(defun now ()
+  (get-universal-time))
+
+(defmacro without-interrupts (&body body)
+  `(#+:CCL 
+    ccl:without-interrupts
+    #-:CCL 
+    ,(error "without-interrupts not supported in this lisp")
+    ,@body))
+
+
+;;; Run a section of code in a background process, errors are reported.  Name must be a string.
+;;; A closure is made around the body.
+#+:ACL-COMPAT
+(defmacro in-background (name &body body)
+  `(acl-compat.mp:process-run-function 
+    ,name
+    #'(lambda () 
+        (handler-case (progn ,@body)
+          (error (condition)
+	    (format *debug-stream* "~%Error in process ~A: ~A" ,name condition))))))
+
+
 
 (provide :mt-utils)
 

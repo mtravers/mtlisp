@@ -110,8 +110,10 @@ For more information, see lisp-unit.html.
            #:remove-all-tests #:remove-tests
            #:logically-equal #:set-equal
            #:use-debugger
-           #:with-test-listener)
-  )
+           #:with-test-listener
+	   #:run-tests-with-failure-continuation
+	   #:assert-runs
+	   ))
 
 (in-package #:lisp-unit)
 
@@ -121,6 +123,7 @@ For more information, see lisp-unit.html.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter *test-listener* nil)
+(defparameter *error-listener* 'default-error-listener)
 
 (defparameter *tests* (make-hash-table))
 
@@ -209,6 +212,14 @@ For more information, see lisp-unit.html.
 
 ;;; RUN-TESTS
 
+;;; mt addition: run tests in multiple packages with unified running total
+(defun run-tests-packages (packages)
+  (run-test-thunks
+   (mapcan #'(lambda (package)
+	       (mapcar #'(lambda (name) (get-test-thunk name package))
+		       (get-tests package)))
+	   packages)))
+
 (defmacro run-all-tests (package &rest tests)
   `(let ((*package* (find-package ',package)))
      (run-tests
@@ -222,7 +233,7 @@ For more information, see lisp-unit.html.
   (mapcar #'(lambda (name) (get-test-thunk name package))
     names))
 
-(defun get-test-thunk (name package)
+(defun get-test-thunk (name &optional (package (symbol-package name)))
   (assert (get-test-code name package) (name package)
           "No test defined for ~S in package ~S" name package)
   (list name (coerce `(lambda () ,@(get-test-code name)) 'function)))
@@ -238,7 +249,7 @@ For more information, see lisp-unit.html.
 ;;; Public functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun get-test-code (name &optional (package *package*))
+(defun get-test-code (name &optional (package (symbol-package name)))
   (let ((table (get-package-table package)))
     (unless (null table)
       (gethash name table))))
@@ -313,12 +324,39 @@ For more information, see lisp-unit.html.
            (and extras (funcall extras))
            *test-count* *pass-count*))
 
+(defun default-error-listener (e test-name)
+  (let ((*print-escape* nil))
+    (setq error-count 1)         
+    (format t "~&~S: Error: ~W" test-name e)))
+
 (defun default-listener
     (passed type name form expected actual extras test-count pass-count)
   (declare (ignore test-count pass-count))
   (unless passed
     (show-failure type (get-failure-message type)
                   name form expected actual extras)))
+
+(defun test-listener (&rest stuff)
+  (print stuff))
+
+(defun run-tests-with-failure-continuation (packages failure-continuation)
+  (let ((strings nil))
+    (flet ((email-listener (passed &rest args)
+	     (unless passed
+	       (push (with-output-to-string (str)
+		       (let ((*standard-output* str))
+			 (apply #'default-listener passed args)))
+		     strings)))
+	   (error-listener (error testname)
+	     (push
+	      (with-output-to-string (str)
+		(format str "Error in ~A: ~A" testname error))
+	      strings)))
+      (let ((*test-listener* #'email-listener)
+	    (*error-listener* #'error-listener))
+	(run-tests-packages packages)))
+    (when strings
+      (funcall failure-continuation (format nil "~{~A~%~}" (nreverse strings))))))
 
 (defun test-passed-p (type expected actual test)
   (ecase type
@@ -364,9 +402,8 @@ For more information, see lisp-unit.html.
            (error-count 0))
       (handler-bind 
           ((error #'(lambda (e)
-                      (let ((*print-escape* nil))
-                        (setq error-count 1)         
-                        (format t "~&~S: Error: ~W" *test-name* e))
+		      (funcall *error-listener* e *test-name*)
+		      (setq error-count 1)
                       (if (use-debugger-p e) e (go exit)))))
         (funcall thunk)
         (show-summary *test-name* *test-count* *pass-count*))
@@ -426,6 +463,20 @@ For more information, see lisp-unit.html.
        (listp l2)
        (subsetp l1 l2 :test test)
        (subsetp l2 l1 :test test)))
+
+
+;;; MT addition -- this asserts that the body runs without errors.
+(defmacro assert-runs (token &body body)
+  `(multiple-value-bind (result err)
+       (ignore-errors ,@body)
+     (internal-assert :equal ,token
+		      #'(lambda () (when err (princ-to-string err)))
+		      #'(lambda () nil)
+		      #'(lambda () nil)
+		      #'eql)))
+		      
+		      
+			
 
 
 (provide "lisp-unit")

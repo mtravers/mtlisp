@@ -1,4 +1,8 @@
-(defpackage :clos* (:use #+genera clos #+MCL ccl common-lisp) (:export "DEFCLASS*" "DEFMETHOD*"))
+(defpackage :closstar
+  (:nicknames "CLOS*")
+  (:use #+genera clos #+MCL ccl common-lisp)
+  (:export "DEFCLASS*" "DEFMETHOD*"))
+
 (in-package :clos*)
 
 #| ######################################################################
@@ -10,7 +14,7 @@ Copyright © 1994-97 Michael Travers
 Permission is given to use and modify this code
 as long as the copyright notice is preserved.
 
-Send questions, comments, and fixes to mt@alum.mit.edu.
+Send questions, comments, and fixes to mt@media.mit.edu.
 
 -------------------------------------------------------------------------
 
@@ -60,7 +64,7 @@ CLOS version 13 August 90
         (init-slots nil)
         (bare-ivs nil)
         (class-options nil)
-        (keyword-package (find-package 'keyword)))
+        (keyword-package (find-package "KEYWORD")))
     (dolist (option options)
       (let ((option-name (if (listp option) (car option) option))
             (option-value (if (listp option) (cdr option) nil)))
@@ -75,6 +79,10 @@ CLOS version 13 August 90
              (setq reader-slots (nunion reader-slots (spec-or-all-ivs option-value))))
             (:initable-instance-variables
              (setq init-slots (spec-or-all-ivs option-value)))
+	    (:abstract
+	     (when option-value
+	       ;; no-op at the moment, idea is to set up something on initialize-instance that errors out. +++
+	       ))
             (t (push option class-options))))))
     (setq reader-slots (set-difference reader-slots writer-slots))
     (flet ((process-iv (iv-form)
@@ -120,11 +128,11 @@ CLOS version 13 August 90
                     ,@decls
            (with-slots ,slots ,(caar lambda-list)
              ;; Eliminate compiler warnings
-             #+:CCL (declare (ignore-if-unused ,@slots)) 
+             #+:CCL (declare (ccl::ignore-if-unused ,@slots)) 
              ,@main-body))))))
 
-;; not sure where this worked, but it doesn't in ACL6.2 or ABCL or SBCL...
-#-(or :allegro :abcl :sbcl)
+;; not sure where this worked, but it doesn't in ACL6.2 or ABCL or SBCL or MCL...
+#-(or :allegro :abcl :sbcl :ccl)
 (setf (arglist 'defmethod*)
       '(name |{method-qualifier}*|
         specialized-lambda-list
@@ -139,7 +147,7 @@ CLOS version 13 August 90
       (push (car rest) qualifiers))))
 
 #| obso in clozure
-#+:MCL
+#+:CCL
 (defun slots-for-class (class-name)
   (let ((class (find-class class-name)))
     (nconc (mapcar #'slot-definition-name
@@ -148,7 +156,7 @@ CLOS version 13 August 90
                    (class-class-slots class)))))
 |#
 
-#+:MCL
+#+:CCL
 (defun slots-for-class (class-name)
   (let ((class (find-class class-name)))
     (mapcar #'slot-definition-name (compute-slots class))))
@@ -187,6 +195,22 @@ CLOS version 13 August 90
 #+MCL (add-definition-type 'class "CLASS*")
 #+MCL (add-definition-type 'method "METHOD*")
 |#
+
+;;; Not really clos*, but
+#+CCL
+(defgeneric oequal (o1 o2))
+
+#+CCL
+(defmethod oequal ((o1 t) (o2 t))
+  (if (and (ccl::standard-instance-p o1)
+	   (ccl::standard-instance-p o2))
+      (and (eq (type-of o1) (type-of o2))
+	   (let ((c (type-of o1)))
+	     (dolist (s (slots-for-class c) t)
+	       (unless (oequal (slot-value o1 s)
+			       (slot-value o2 s))
+		 (return nil)))))
+      (equal o1 o2)))
 
 (export '(defmethod* defclass*))
 

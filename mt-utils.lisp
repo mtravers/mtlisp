@@ -1241,6 +1241,31 @@ example:
 	    (format *debug-stream* "~%Error in process ~A: ~A" ,name condition))))))
 
 
+;;; These are useful in conjunction with functions that take keywords and use &allow-other-keys
+#|
+Example:
+(defun link-to-remote (text url &rest remote-function-options &key html-options &allow-other-keys)
+  (link-to-function text (apply #'remote-function url (delete-keyword-args '(:html-options) remote-function-options))
+		    :html-options html-options))
+
+|#
+(defun delete-keyword-arg (key arglist)
+  (awhen (position key arglist)
+         (if (zerop it)
+             (setf arglist (cddr arglist))
+             (setf (nthcdr it arglist) (nthcdr (+ it 2) arglist))))
+  arglist)
+
+(defun delete-keyword-args (keys arglist)
+  (if (null keys) arglist
+      (delete-keyword-arg (car keys) (delete-keyword-args (cdr keys) arglist))))
+
+;;; not used or exported
+(defun vector->string (v)
+  (let ((string (make-string (length v))))
+    (dotimes (i (length v))
+      (setf (char string i) (code-char (aref v i)))) 
+    string))
 
 (provide :mt-utils)
 

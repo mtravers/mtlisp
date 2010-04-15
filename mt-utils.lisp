@@ -965,9 +965,6 @@ corresponding function."
 		 (push "" res))
 	     (return (nreverse res)))))))
 
-(defun string-split-by-string (str splitter)
-  (cl-ppcre:
-
 (defun string-split-words (str &optional (whitespace *whitespace*))
   ;; split the given string into words (items separated by white space)
   ;;

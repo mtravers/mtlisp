@@ -130,8 +130,8 @@ CLOS version 13 August 90
              #+:CCL (declare (ccl::ignore-if-unused ,@use-slots)) 
              ,@main-body))))))
 
-;; not sure where this worked, but it doesn't in ACL6.2 or ABCL or SBCL or MCL...
-#-(or :allegro :abcl :sbcl :mcl)
+;; not sure where this worked, but it doesn't in ACL6.2 or ABCL or SBCL or CCL...
+#-(or :allegro :abcl :sbcl :ccl)
 (setf (arglist 'defmethod*)
       '(name |{method-qualifier}*|
         specialized-lambda-list
@@ -146,7 +146,7 @@ CLOS version 13 August 90
       (push (car rest) qualifiers))))
 
 #| obso in clozure
-#+:MCL
+#+:CCL
 (defun slots-for-class (class-name)
   (let ((class (find-class class-name)))
     (nconc (mapcar #'slot-definition-name
@@ -155,7 +155,7 @@ CLOS version 13 August 90
                    (class-class-slots class)))))
 |#
 
-#+:MCL
+#+:CCL
 (defun slots-for-class (class-name)
   (let ((class (find-class class-name)))
     (mapcar #'slot-definition-name (compute-slots class))))
@@ -191,8 +191,8 @@ CLOS version 13 August 90
           (values (nreverse declarations) rest)))))
 
 #| No longer in Clozure, need to find replacements
-#+MCL (add-definition-type 'class "CLASS*")
-#+MCL (add-definition-type 'method "METHOD*")
+#+CCL (add-definition-type 'class "CLASS*")
+#+CCL (add-definition-type 'method "METHOD*")
 |#
 
 ;;; Not really clos*, but

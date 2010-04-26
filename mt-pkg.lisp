@@ -62,7 +62,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            "DUMP-VARS-TO-FILE" "DUMP-VAR-TO-FILE"
            "DEFBIT"
            "FIRSTN" "BREAK-LIST"
-	   "REPORT-AND-IGNORE-ERRORS"
+	   "ITRACE" "REPORT-AND-IGNORE-ERRORS"
 	   "NOW" 
 	   "WITHOUT-INTERRUPTS" #+:ACL-COMPAT "IN-BACKGROUND"
            "READ-UNTIL" "READ-UNTIL-STRING" "NEW-STRING"

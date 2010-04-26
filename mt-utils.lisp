@@ -1203,6 +1203,15 @@ example:
        (incf *debug-indent-level*))
      ,@body))
 
+;;; wrap this around a function call form to trace it (good for when you can't use TRACE, ie, low-level CL functions)
+(defmacro itrace (form)
+  `(let ((args (list ,@(cdr form)))
+	 value)
+     (print `(calling ,',(car form) ,@args))
+     (setf value (apply ',(car form) args))
+     (print `(result ,value))
+     value))
+
 ;;; Error handling -- returns condition if error happens
 (defmacro report-and-ignore-errors (&body body)
   `(handler-case (progn ,@body)

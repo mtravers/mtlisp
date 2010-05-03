@@ -911,6 +911,23 @@ corresponding function."
     (with-open-file (outs out :direction :output)
       (stream-copy ins outs))))
 
+(defun file-to-string (file &key (max 1000000))
+  #.(doc
+     "Returns a string containing all the characters in FILE with line"
+     "terminators converted to Newlines.  If the string would exceed MAX"
+     "characters (default a million) a warning is issued and NIL is returned.")
+  (with-open-file (p file :direction :input)
+    (let ((buffer-size (file-length p))
+	  buffer)
+      (when (> buffer-size max)
+        (warn 
+         "File ~A is too big! Allowed: ~A, actual: ~A"
+         file max buffer-size)
+        (return-from file-to-string nil))    
+      (setf buffer (make-string buffer-size))
+      (read-sequence buffer p)
+      buffer)))
+
 (defun pprint-to-string (struct &optional (right-margin *print-right-margin*))
   (with-output-to-string (stream)
     (let ((*print-pretty* t)

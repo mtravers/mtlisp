@@ -53,7 +53,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
 ;          "AIF" "AWHEN" "AAND" "ACOND" "ALAMBDA"  "IT" "SELF"
            "SYMBOL-CONC" "SYMBOL-CONC*" "KEYWORDIZE" "UP-KEYWORDIZE"
            "EXTERNALP" "ADD-NICKNAME"
-           "STREAM-COPY" "FILE-COPY"
+           "STREAM-COPY" "FILE-COPY" "FILE-TO-STRING"
            #-:ABCL "SUBCLASSES" #-:ABCL "SUPERCLASSES"
            "PLIST-MIXIN" "OGET" "OPUT" "CALL-IF"
            "SET-EQUAL" "CURRY" "RCURRY" "TRANSITIVE-CLOSURE" "TRANSITIVE-CLOSURE-PROCEDURE"

@@ -343,7 +343,6 @@ Except for removal of EQL occurences, order is maintained as one might expect."
 	       (maptree-dots fcn (cdr Tree))))
 	(t (funcall fcn tree))))
 
-
 (defun mapsum (fcn list)
   (let ((result 0))
     (dolist (elt list result)
@@ -1013,6 +1012,12 @@ corresponding function."
 (defun fast-whitespacep (char &optional (whitespace *whitespace*))
   #-:SBCL (declare (optimize (speed 3) (safety 0)))
   (member (the char char) whitespace :test #'eql))
+
+(defun string-fast-whitespacep (string &optional (whitespace *whitespace*))
+  #-:SBCL (declare (optimize (speed 3) (safety 0)))
+  (dotimes (i (length string) t)
+    (unless (fast-whitespacep (char string i) whitespace)
+      (return-from string-fast-whitespacep nil))))
 
 (defun string-trim-whitespace (string)
   (string-trim *whitespace* string))

@@ -927,6 +927,10 @@ corresponding function."
       (read-sequence buffer p)
       buffer)))
 
+(defun string-to-file (string file)
+  (with-open-file (out file :direction :output :if-exists :supersede)
+    (write-string string out)))
+
 (defun pprint-to-string (struct &optional (right-margin *print-right-margin*))
   (with-output-to-string (stream)
     (let ((*print-pretty* t)

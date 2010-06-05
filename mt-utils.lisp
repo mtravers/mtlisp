@@ -576,19 +576,23 @@ returning the list of results.  Order is maintained as one might expect."
 ; Comparision of new args to old is by EQUAL.  Redefining the function resets
 ; the cache.  
 ; +++ handle declarations in body
+; Defines "reset-<fun>" to clear the cache
 (defmacro def-cached-function (name arglist &body body)
   (let ((ht (make-hash-table :test #'equal)))
     (setf (get name :cache) ht)		;allows access
-    `(defun ,name (&rest args)
-       (declare (dynamic-extent args))
-       (multiple-value-bind (val found)
-	   (gethash args ,ht)
-	 (if found 
-           val
-           (setf (gethash (copy-list args) ,ht)
-                 (block ,name
-                   (destructuring-bind ,arglist args
-                     ,@body))))))))
+    `(progn
+       (defun ,name (&rest args)
+	 (declare (dynamic-extent args))
+	 (multiple-value-bind (val found)
+	     (gethash args ,ht)
+	   (if found 
+	       val
+	       (setf (gethash (copy-list args) ,ht)
+		     (block ,name
+		       (destructuring-bind ,arglist args
+			 ,@body))))))
+       (defun ,(symbol-conc 'reset- name) ()
+	 (clrhash (get ',name :cache))))))
 
 
 ;;; alt version for single argument, uses eql as test, more efficient
@@ -744,17 +748,18 @@ corresponding function."
   (if (> x 0) (exp (/ (log x) n))
       (error "In NTH-ROOT, X=~S is not positive." x)))
 
+;;; +++ should be coerce-integer
 (defun coerce-number (thing &key no-error (default thing))
   (typecase thing
     (number thing)
     (string 
-     (let ((n (read-from-string thing)))
-       (if no-error
-	   (if (numberp n) n default)
-	   (progn
-	     (assert (numberp n))
-	     n))))
-    (t (error "can't coerce ~A to a number" thing))))
+     (multiple-value-bind (num end) (parse-integer thing :junk-allowed t)
+       (if (eq end (length thing))
+	   num
+	   (if no-error
+	       default
+	       (error  "can't coerce ~A to a number" thing)))))
+    (t (if no-error default (error "can't coerce ~A to a number" thing)))))
 
 ;;; Fast versions of non-arithmetic functions
 

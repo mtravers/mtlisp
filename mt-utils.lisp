@@ -748,14 +748,26 @@ corresponding function."
   (if (> x 0) (exp (/ (log x) n))
       (error "In NTH-ROOT, X=~S is not positive." x)))
 
-;;; +++ should be coerce-integer
-(defun coerce-number (thing &key no-error (default thing))
+(defun coerce-integer (thing &key no-error (default thing))
   (typecase thing
     (number thing)
     (string 
      (multiple-value-bind (num end) (parse-integer thing :junk-allowed t)
        (if (eq end (length thing))
 	   num
+	   (if no-error
+	       default
+	       (error  "can't coerce ~A to a number" thing)))))
+    (t (if no-error default (error "can't coerce ~A to a number" thing)))))
+
+
+(defun coerce-number (thing &key no-error (default thing))
+  (typecase thing
+    (number thing)
+    (string 
+     (let ((thing (ignore-errors (read-from-string thing))))
+       (if (numberp thing)
+	   thing
 	   (if no-error
 	       default
 	       (error  "can't coerce ~A to a number" thing)))))

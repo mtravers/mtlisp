@@ -1109,6 +1109,7 @@ corresponding function."
         ((null (cdr args)) (car args))
         (t `(aif ,(car args) (aand ,@(cdr args))))))
 
+;;; +++ a single-form clause doesn't do the right thing (ie what cond does)
 (defmacro acond (&rest clauses)
   (when clauses
     (let ((clause (car clauses))

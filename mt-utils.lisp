@@ -388,6 +388,15 @@ returning the list of results.  Order is maintained as one might expect."
     (unless (funcall predicate (if key (funcall key elt) elt))
       (push elt wheat))))
 
+;;; Not very efficient, see biolisp for better one
+(defun flatten (tree)
+  (cond ((null tree) nil)
+	((listp tree) 
+	 (append (flatten (car tree))
+		 (flatten (cdr tree))))
+	(t (list tree))))
+
+
 ;;; String Utilities
 
 ;;; this is the same as the CL function SUBSTITUTE, so let's flush it...

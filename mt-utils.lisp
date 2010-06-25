@@ -4,7 +4,7 @@
 
  Random Lisp utilities
 
-Copyright © 1994-2009 Michael Travers
+Copyright © 1994-2010 Michael Travers
 Permission is given to use and modify this code as long
 as the copyright notice is preserved.
 
@@ -413,6 +413,28 @@ returning the list of results.  Order is maintained as one might expect."
 (defun string+ (&rest args)
   "Concatenate the elements of ARGS."
   (apply #'concatenate 'string args))
+
+;;; stolen from BioLisp
+(defun string-join (string-list &optional (sep #\Space))
+  "Concatenates strings together and puts SEP between each joined substring"
+  (setq sep (string sep))
+  (when (null string-list) (return-from string-join ""))
+  (let* ((total-length 0)
+         (sep-length (length sep))
+         (no-sep (zerop sep-length)))
+    (dolist (s string-list) (incf total-length (+ (length s) sep-length)))
+    (decf total-length sep-length)
+    (let ((result-string (make-string total-length))
+          (current-pos 0))
+      (dolist (s string-list)
+        (replace result-string s :start1 current-pos)
+        (incf current-pos (length s))
+        (unless (or no-sep (>= current-pos total-length))
+          (replace result-string sep :start1 current-pos)
+          (incf current-pos sep-length)
+          ))
+      result-string
+      )))
 
 (defun parse-substrings (string separator)
   "Return substrings separated by separator character.  "

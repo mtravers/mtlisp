@@ -1083,10 +1083,15 @@ corresponding function."
                (format t "~%~A: ~A" key value))
            ht))
 
-(defun ht-contents (ht)
-  (let ((result nil))
+;;; Limit only returns a few elements (note: still slow for large tables in CCL, maphash must be doing something stupid)
+(defun ht-contents (ht &key limit)
+  (let ((result nil)
+	(count 0))
     (maphash #'(lambda (key value)
-                 (push (list key value) result))
+                 (push (list key value) result)
+		 (when (and limit 
+			    (> (incf count) limit))
+		   (return-from ht-contents result)))
            ht)
     result))
 

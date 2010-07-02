@@ -215,6 +215,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
 (defmacro collecting (&body body)
   `(let ((%results nil))
      (flet ((collect (thing) (push thing %results))
+	    (collect-if (thing) (when thing (push thing %results)))
 	    (collect-new (thing &optional (test #'eql)) (pushnew thing %results :test test)))
        ,@body)
      (nreverse %results)))

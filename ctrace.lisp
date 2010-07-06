@@ -205,7 +205,7 @@ Ancestry: Henry Lieberman's ZStep, my own PSTEP/PTRACE.
 
 #+:CCL
 (defun unctrace-function-2 (function-name)
-  (ccl::unadvise-1 function-name :around 'ctrace))
+  (ccl::%unadvise-1 function-name :around 'ctrace))
 
 #+:ACL
 (defun unctrace-function-2 (function-name)
@@ -264,17 +264,6 @@ Ancestry: Henry Lieberman's ZStep, my own PSTEP/PTRACE.
 (defclass trace-window (fred-window) ()
   (:default-initargs :scratch-p t))
 
-#+:CCL
-(defun view-ctrace (&optional (trace *ctrace-top*))
-  (let ((w (make-instance 'trace-window
-             :window-title (format nil "Trace ~A" (car trace))
-             :view-font '("Geneva" 9 :plain)
-             :view-size (make-point 1000 700)))) ; #@(1000 700)
-    (pprint trace w)
-    (invalidate-view w)                 ; necessary to force update
-    (beep)))
-
-#-:CCL
 (defun view-ctrace (&optional (trace *ctrace-top*))
   (pprint trace))
 

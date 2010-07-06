@@ -1,6 +1,6 @@
 (defpackage :closstar
   (:nicknames "CLOS*")
-  (:use #+genera clos #+MCL ccl common-lisp)
+  (:use common-lisp)
   (:export "DEFCLASS*" "DEFMETHOD*"))
 
 (in-package :clos*)
@@ -159,7 +159,7 @@ CLOS version 13 August 90
 #+:CCL
 (defun slots-for-class (class-name)
   (let ((class (find-class class-name)))
-    (mapcar #'slot-definition-name (compute-slots class))))
+    (mapcar #'ccl:slot-definition-name (ccl:compute-slots class))))
 
 #+:ALLEGRO
 (defun slots-for-class (class-name)

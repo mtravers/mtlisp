@@ -4,7 +4,7 @@
 
  Random Lisp utilities
 
-Copyright © 1994-2009 Michael Travers
+Copyright Â© 1994-2010 Michael Travers
 Permission is given to use and modify this code as long
 as the copyright notice is preserved.
 
@@ -215,6 +215,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
 (defmacro collecting (&body body)
   `(let ((%results nil))
      (flet ((collect (thing) (push thing %results))
+	    (collect-if (thing) (when thing (push thing %results)))
 	    (collect-new (thing &optional (test #'eql)) (pushnew thing %results :test test)))
        ,@body)
      (nreverse %results)))
@@ -343,7 +344,6 @@ Except for removal of EQL occurences, order is maintained as one might expect."
 	       (maptree-dots fcn (cdr Tree))))
 	(t (funcall fcn tree))))
 
-
 (defun mapsum (fcn list)
   (let ((result 0))
     (dolist (elt list result)
@@ -389,6 +389,15 @@ returning the list of results.  Order is maintained as one might expect."
     (unless (funcall predicate (if key (funcall key elt) elt))
       (push elt wheat))))
 
+;;; Not very efficient, see biolisp for better one
+(defun flatten (tree)
+  (cond ((null tree) nil)
+	((listp tree) 
+	 (append (flatten (car tree))
+		 (flatten (cdr tree))))
+	(t (list tree))))
+
+
 ;;; String Utilities
 
 ;;; this is the same as the CL function SUBSTITUTE, so let's flush it...
@@ -405,6 +414,28 @@ returning the list of results.  Order is maintained as one might expect."
 (defun string+ (&rest args)
   "Concatenate the elements of ARGS."
   (apply #'concatenate 'string args))
+
+;;; stolen from BioLisp
+(defun string-join (string-list &optional (sep #\Space))
+  "Concatenates strings together and puts SEP between each joined substring"
+  (setq sep (string sep))
+  (when (null string-list) (return-from string-join ""))
+  (let* ((total-length 0)
+         (sep-length (length sep))
+         (no-sep (zerop sep-length)))
+    (dolist (s string-list) (incf total-length (+ (length s) sep-length)))
+    (decf total-length sep-length)
+    (let ((result-string (make-string total-length))
+          (current-pos 0))
+      (dolist (s string-list)
+        (replace result-string s :start1 current-pos)
+        (incf current-pos (length s))
+        (unless (or no-sep (>= current-pos total-length))
+          (replace result-string sep :start1 current-pos)
+          (incf current-pos sep-length)
+          ))
+      result-string
+      )))
 
 (defun parse-substrings (string separator)
   "Return substrings separated by separator character.  "
@@ -577,19 +608,23 @@ returning the list of results.  Order is maintained as one might expect."
 ; Comparision of new args to old is by EQUAL.  Redefining the function resets
 ; the cache.  
 ; +++ handle declarations in body
+; Defines "reset-<fun>" to clear the cache
 (defmacro def-cached-function (name arglist &body body)
   (let ((ht (make-hash-table :test #'equal)))
     (setf (get name :cache) ht)		;allows access
-    `(defun ,name (&rest args)
-       (declare (dynamic-extent args))
-       (multiple-value-bind (val found)
-	   (gethash args ,ht)
-	 (if found 
-           val
-           (setf (gethash (copy-list args) ,ht)
-                 (block ,name
-                   (destructuring-bind ,arglist args
-                     ,@body))))))))
+    `(progn
+       (defun ,name (&rest args)
+	 (declare (dynamic-extent args))
+	 (multiple-value-bind (val found)
+	     (gethash args ,ht)
+	   (if found 
+	       val
+	       (setf (gethash (copy-list args) ,ht)
+		     (block ,name
+		       (destructuring-bind ,arglist args
+			 ,@body))))))
+       (defun ,(symbol-conc 'reset- name) ()
+	 (clrhash (get ',name :cache))))))
 
 
 ;;; alt version for single argument, uses eql as test, more efficient
@@ -745,17 +780,30 @@ corresponding function."
   (if (> x 0) (exp (/ (log x) n))
       (error "In NTH-ROOT, X=~S is not positive." x)))
 
+(defun coerce-integer (thing &key no-error (default thing))
+  (typecase thing
+    (number thing)
+    (string 
+     (multiple-value-bind (num end) (parse-integer thing :junk-allowed t)
+       (if (eq end (length thing))
+	   num
+	   (if no-error
+	       default
+	       (error  "can't coerce ~A to a number" thing)))))
+    (t (if no-error default (error "can't coerce ~A to a number" thing)))))
+
+
 (defun coerce-number (thing &key no-error (default thing))
   (typecase thing
     (number thing)
     (string 
-     (let ((n (read-from-string thing)))
-       (if no-error
-	   (if (numberp n) n default)
-	   (progn
-	     (assert (numberp n))
-	     n))))
-    (t (error "can't coerce ~A to a number" thing))))
+     (let ((thing (ignore-errors (read-from-string thing))))
+       (if (numberp thing)
+	   thing
+	   (if no-error
+	       default
+	       (error  "can't coerce ~A to a number" thing)))))
+    (t (if no-error default (error "can't coerce ~A to a number" thing)))))
 
 ;;; Fast versions of non-arithmetic functions
 
@@ -901,6 +949,23 @@ corresponding function."
     (with-open-file (outs out :direction :output)
       (stream-copy ins outs))))
 
+(defun file-to-string (file &key (max 1000000))
+  #.(doc
+     "Returns a string containing all the characters in FILE with line"
+     "terminators converted to Newlines.  If the string would exceed MAX"
+     "characters (default a million) a warning is issued and NIL is returned.")
+  (with-open-file (p file :direction :input)
+    (let ((buffer-size (file-length p))
+	  buffer)
+      (when (> buffer-size max)
+        (warn 
+         "File ~A is too big! Allowed: ~A, actual: ~A"
+         file max buffer-size)
+        (return-from file-to-string nil))    
+      (setf buffer (make-string buffer-size))
+      (read-sequence buffer p)
+      buffer)))
+
 (defun pprint-to-string (struct &optional (right-margin *print-right-margin*))
   (with-output-to-string (stream)
     (let ((*print-pretty* t)
@@ -985,7 +1050,13 @@ corresponding function."
 
 (defun fast-whitespacep (char &optional (whitespace *whitespace*))
   #-:SBCL (declare (optimize (speed 3) (safety 0)))
-  (member (the char char) whitespace :test #'eql))
+  (member (the character char) whitespace :test #'eql))
+
+(defun string-fast-whitespacep (string &optional (whitespace *whitespace*))
+  #-:SBCL (declare (optimize (speed 3) (safety 0)))
+  (dotimes (i (length string) t)
+    (unless (fast-whitespacep (char string i) whitespace)
+      (return-from string-fast-whitespacep nil))))
 
 (defun string-trim-whitespace (string)
   (string-trim *whitespace* string))
@@ -1003,10 +1074,15 @@ corresponding function."
                (format t "~%~A: ~A" key value))
            ht))
 
-(defun ht-contents (ht)
-  (let ((result nil))
+;;; Limit only returns a few elements (note: still slow for large tables in CCL, maphash must be doing something stupid)
+(defun ht-contents (ht &key limit)
+  (let ((result nil)
+	(count 0))
     (maphash #'(lambda (key value)
-                 (push (list key value) result))
+                 (push (list key value) result)
+		 (when (and limit 
+			    (> (incf count) limit))
+		   (return-from ht-contents result)))
            ht)
     result))
 
@@ -1060,6 +1136,7 @@ corresponding function."
         ((null (cdr args)) (car args))
         (t `(aif ,(car args) (aand ,@(cdr args))))))
 
+;;; +++ a single-form clause doesn't do the right thing (ie what cond does)
 (defmacro acond (&rest clauses)
   (when clauses
     (let ((clause (car clauses))
@@ -1193,6 +1270,15 @@ example:
        (incf *debug-indent-level*))
      ,@body))
 
+;;; wrap this around a function call form to trace it (good for when you can't use TRACE, ie, low-level CL functions)
+(defmacro itrace (form)
+  `(let ((args (list ,@(cdr form)))
+	 value)
+     (print `(calling ,',(car form) ,@args))
+     (setf value (apply ',(car form) args))
+     (print `(result ,value))
+     value))
+
 ;;; Error handling -- returns condition if error happens
 (defmacro report-and-ignore-errors (&body body)
   `(handler-case (progn ,@body)
@@ -1231,6 +1317,31 @@ example:
 	    (format *debug-stream* "~%Error in process ~A: ~A" ,name condition))))))
 
 
+;;; These are useful in conjunction with functions that take keywords and use &allow-other-keys
+#|
+Example:
+(defun link-to-remote (text url &rest remote-function-options &key html-options &allow-other-keys)
+  (link-to-function text (apply #'remote-function url (delete-keyword-args '(:html-options) remote-function-options))
+		    :html-options html-options))
+
+|#
+(defun delete-keyword-arg (key arglist)
+  (awhen (position key arglist)
+         (if (zerop it)
+             (setf arglist (cddr arglist))
+             (setf (nthcdr it arglist) (nthcdr (+ it 2) arglist))))
+  arglist)
+
+(defun delete-keyword-args (keys arglist)
+  (if (null keys) arglist
+      (delete-keyword-arg (car keys) (delete-keyword-args (cdr keys) arglist))))
+
+;;; not used or exported
+(defun vector->string (v)
+  (let ((string (make-string (length v))))
+    (dotimes (i (length v))
+      (setf (char string i) (code-char (aref v i)))) 
+    string))
 
 (provide :mt-utils)
 

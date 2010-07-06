@@ -5,7 +5,7 @@
 
  Structure dumper.
 
-Copyright © 1994-97 Michael Travers 
+Copyright Â© 1994-97 Michael Travers 
 
 Permission is given to use and modify this code
 as long as the copyright notice is preserved.

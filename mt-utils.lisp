@@ -976,6 +976,11 @@ corresponding function."
       (read-sequence buffer p)
       buffer)))
 
+(defun relative-pathname (name &optional directories)
+  (make-pathname :defaults (pathname name)
+		 :directory (append (pathname-directory *load-pathname*)
+				    directories)))
+
 (defun pprint-to-string (struct &optional (right-margin *print-right-margin*))
   (with-output-to-string (stream)
     (let ((*print-pretty* t)

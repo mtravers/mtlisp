@@ -112,7 +112,7 @@ CLOS version 13 August 90
   (intern (apply #'concatenate 'string (mapcar #'string components))))
 
 ;;; see header for doc.
-(defmacro defmethod* (&rest args &environment env)
+(defmacro defmethod* (&rest args)
   (multiple-value-bind (name qualifiers lambda-list body)
       (parse-defmethod args)
     (multiple-value-bind (decls main-body)

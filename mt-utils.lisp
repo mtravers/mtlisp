@@ -4,7 +4,7 @@
 
  Random Lisp utilities
 
-Copyright © 1994-2009 Michael Travers
+Copyright © 1994-2010 Michael Travers
 Permission is given to use and modify this code as long
 as the copyright notice is preserved.
 
@@ -215,6 +215,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
 (defmacro collecting (&body body)
   `(let ((%results nil))
      (flet ((collect (thing) (push thing %results))
+	    (collect-if (thing) (when thing (push thing %results)))
 	    (collect-new (thing &optional (test #'eql)) (pushnew thing %results :test test)))
        ,@body)
      (nreverse %results)))
@@ -388,6 +389,15 @@ returning the list of results.  Order is maintained as one might expect."
     (unless (funcall predicate (if key (funcall key elt) elt))
       (push elt wheat))))
 
+;;; Not very efficient, see biolisp for better one
+(defun flatten (tree)
+  (cond ((null tree) nil)
+	((listp tree) 
+	 (append (flatten (car tree))
+		 (flatten (cdr tree))))
+	(t (list tree))))
+
+
 ;;; String Utilities
 
 ;;; this is the same as the CL function SUBSTITUTE, so let's flush it...
@@ -404,6 +414,28 @@ returning the list of results.  Order is maintained as one might expect."
 (defun string+ (&rest args)
   "Concatenate the elements of ARGS."
   (apply #'concatenate 'string args))
+
+;;; stolen from BioLisp
+(defun string-join (string-list &optional (sep #\Space))
+  "Concatenates strings together and puts SEP between each joined substring"
+  (setq sep (string sep))
+  (when (null string-list) (return-from string-join ""))
+  (let* ((total-length 0)
+         (sep-length (length sep))
+         (no-sep (zerop sep-length)))
+    (dolist (s string-list) (incf total-length (+ (length s) sep-length)))
+    (decf total-length sep-length)
+    (let ((result-string (make-string total-length))
+          (current-pos 0))
+      (dolist (s string-list)
+        (replace result-string s :start1 current-pos)
+        (incf current-pos (length s))
+        (unless (or no-sep (>= current-pos total-length))
+          (replace result-string sep :start1 current-pos)
+          (incf current-pos sep-length)
+          ))
+      result-string
+      )))
 
 (defun parse-substrings (string separator)
   "Return substrings separated by separator character.  "
@@ -576,19 +608,23 @@ returning the list of results.  Order is maintained as one might expect."
 ; Comparision of new args to old is by EQUAL.  Redefining the function resets
 ; the cache.  
 ; +++ handle declarations in body
+; Defines "reset-<fun>" to clear the cache
 (defmacro def-cached-function (name arglist &body body)
   (let ((ht (make-hash-table :test #'equal)))
     (setf (get name :cache) ht)		;allows access
-    `(defun ,name (&rest args)
-       (declare (dynamic-extent args))
-       (multiple-value-bind (val found)
-	   (gethash args ,ht)
-	 (if found 
-           val
-           (setf (gethash (copy-list args) ,ht)
-                 (block ,name
-                   (destructuring-bind ,arglist args
-                     ,@body))))))))
+    `(progn
+       (defun ,name (&rest args)
+	 (declare (dynamic-extent args))
+	 (multiple-value-bind (val found)
+	     (gethash args ,ht)
+	   (if found 
+	       val
+	       (setf (gethash (copy-list args) ,ht)
+		     (block ,name
+		       (destructuring-bind ,arglist args
+			 ,@body))))))
+       (defun ,(symbol-conc 'reset- name) ()
+	 (clrhash (get ',name :cache))))))
 
 
 ;;; alt version for single argument, uses eql as test, more efficient
@@ -744,17 +780,30 @@ corresponding function."
   (if (> x 0) (exp (/ (log x) n))
       (error "In NTH-ROOT, X=~S is not positive." x)))
 
+(defun coerce-integer (thing &key no-error (default thing))
+  (typecase thing
+    (number thing)
+    (string 
+     (multiple-value-bind (num end) (parse-integer thing :junk-allowed t)
+       (if (eq end (length thing))
+	   num
+	   (if no-error
+	       default
+	       (error  "can't coerce ~A to a number" thing)))))
+    (t (if no-error default (error "can't coerce ~A to a number" thing)))))
+
+
 (defun coerce-number (thing &key no-error (default thing))
   (typecase thing
     (number thing)
     (string 
-     (let ((n (read-from-string thing)))
-       (if no-error
-	   (if (numberp n) n default)
-	   (progn
-	     (assert (numberp n))
-	     n))))
-    (t (error "can't coerce ~A to a number" thing))))
+     (let ((thing (ignore-errors (read-from-string thing))))
+       (if (numberp thing)
+	   thing
+	   (if no-error
+	       default
+	       (error  "can't coerce ~A to a number" thing)))))
+    (t (if no-error default (error "can't coerce ~A to a number" thing)))))
 
 ;;; Fast versions of non-arithmetic functions
 
@@ -931,6 +980,11 @@ corresponding function."
   (with-open-file (out file :direction :output :if-exists :supersede)
     (write-string string out)))
 
+(defun relative-pathname (name &optional directories)
+  (make-pathname :defaults (pathname name)
+		 :directory (append (pathname-directory *load-pathname*)
+				    directories)))
+
 (defun pprint-to-string (struct &optional (right-margin *print-right-margin*))
   (with-output-to-string (stream)
     (let ((*print-pretty* t)
@@ -1039,10 +1093,15 @@ corresponding function."
                (format t "~%~A: ~A" key value))
            ht))
 
-(defun ht-contents (ht)
-  (let ((result nil))
+;;; Limit only returns a few elements (note: still slow for large tables in CCL, maphash must be doing something stupid)
+(defun ht-contents (ht &key limit)
+  (let ((result nil)
+	(count 0))
     (maphash #'(lambda (key value)
-                 (push (list key value) result))
+                 (push (list key value) result)
+		 (when (and limit 
+			    (> (incf count) limit))
+		   (return-from ht-contents result)))
            ht)
     result))
 
@@ -1096,6 +1155,7 @@ corresponding function."
         ((null (cdr args)) (car args))
         (t `(aif ,(car args) (aand ,@(cdr args))))))
 
+;;; +++ a single-form clause doesn't do the right thing (ie what cond does)
 (defmacro acond (&rest clauses)
   (when clauses
     (let ((clause (car clauses))

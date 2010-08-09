@@ -848,10 +848,10 @@ corresponding function."
   (intern (string symbol) (find-package :keyword)))
 
 (defun keywordize (symbol)
-  (intern (string symbol) (find-package :keyword)))
+  (when symbol (intern (string symbol) (find-package :keyword))))
 
 (defun up-keywordize (symbol)
-  (intern (string-upcase (string symbol)) (find-package :keyword)))
+  (when symbol (intern (string-upcase (string symbol)) (find-package :keyword))))
 
 ;;; CL provides no externalp function, and neither does MCL (although it keeps this info with the symbol).
 (defun externalp (symbol)

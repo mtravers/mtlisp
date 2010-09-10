@@ -606,25 +606,24 @@ returning the list of results.  Order is maintained as one might expect."
 ; Define a memoized function.  The function should be a function in the mathematical sense
 ; (a mapping with no state dependencies).  
 ; Comparision of new args to old is by EQUAL.  Redefining the function resets
-; the cache.  
+; the cache; also defines "reset-<fun>" to clear the cache.
 ; +++ handle declarations in body
-; Defines "reset-<fun>" to clear the cache
 (defmacro def-cached-function (name arglist &body body)
-  (let ((ht (make-hash-table :test #'equal)))
-    (setf (get name :cache) ht)		;allows access
-    `(progn
-       (defun ,name (&rest args)
-	 (declare (dynamic-extent args))
+  `(progn
+     (defun ,name (&rest args)
+       (declare (dynamic-extent args))
+       (let ((ht (or (get ',name :cache)
+		     (setf (get ',name :cache) (make-hash-table :test #'equal)))))
 	 (multiple-value-bind (val found)
-	     (gethash args ,ht)
+	     (gethash args ht)
 	   (if found 
 	       val
-	       (setf (gethash (copy-list args) ,ht)
+	       (setf (gethash (copy-list args) ht)
 		     (block ,name
 		       (destructuring-bind ,arglist args
-			 ,@body))))))
-       (defun ,(symbol-conc 'reset- name) ()
-	 (clrhash (get ',name :cache))))))
+			 ,@body)))))))
+     (defun ,(symbol-conc 'reset- name) ()
+	 (clrhash (get ',name :cache)))))
 
 
 ;;; alt version for single argument, uses eql as test, more efficient

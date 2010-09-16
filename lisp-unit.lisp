@@ -594,7 +594,7 @@ defclass junit-runner, interactive-runner, etc, and have the above be methods.
 
 ;;; Returns s-xml which the caller must write out
 (defmethod run ((runner junit-test-runner))
-  (
+  )
 
 
 (defmacro with-output-to-junit (&body body)

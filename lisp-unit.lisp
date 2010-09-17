@@ -515,9 +515,14 @@ defclass junit-runner, interactive-runner, etc, and have the above be methods.
 
 
 |#
-(defclass test-runner () ())
+(defclass test-runner () 
+  ((packages :initarg :packages)))
 
 (defvar *test-runner*)
+
+(defmethod run ((runner test-runner))
+  (dolist (package (slot-value runner 'packages))
+    (run-test-suite runner package)))
 
 (defmethod run-test-suite ((runner test-runner) package)
   (let ((*test-runner* runner))
@@ -568,13 +573,13 @@ defclass junit-runner, interactive-runner, etc, and have the above be methods.
   (let* ((expected (multiple-value-list (funcall expected-thunk)))
          (actual (multiple-value-list (funcall code-thunk)))
          (passed (test-passed-p type expected actual test)))
-    (record-result *test-runner* *test* 
+    (record-result-n *test-runner* *test* 
 		   passed type form expected actual extras)
     (when passed
       (incf *pass-count*))
     passed))
 
-(defmethod record-result ((runner test-runner) test passed type form expected actual extras)
+(defmethod record-result-n ((runner test-runner) test passed type form expected actual extras)
   (declare (ignore test-count pass-count))
   (unless passed
     (record-failure runner test
@@ -589,13 +594,35 @@ defclass junit-runner, interactive-runner, etc, and have the above be methods.
 
 (defclass junit-test-runner (test-runner)
   (; (output-file :initarg :output-file)
-   (packages :initarg :packages)))
+   ))
 
+(defvar *collection*)
+(defmacro collecting (&body body)
+  `(let ((*collecting* nil))
+     ,@body
+     *collection*))
+(defmacro collect (thing)
+  `(push ,thing *collection*))
 
 ;;; Returns s-xml which the caller must write out
-(defmethod run ((runner junit-test-runner))
-  )
+(defmethod run :after ((runner junit-test-runner))
+  `(:testsuites
+    ,(collecting
+      (call-next-method))
+    ))
 
+(defmethod run-test-suite :around ((runner junit-test-runner) package)
+  `(:testsuite
+    ,(collecting
+      (call-next-method))))
+
+(defmethod run-test :around ((runnder junit-test-runner) test)
+  `(:test ,test ,(call-next-method)))
+
+
+
+
+;;; older form
 
 (defmacro with-output-to-junit (&body body)
   `(let ((cases nil))

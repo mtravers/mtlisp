@@ -122,14 +122,21 @@ For more information, see lisp-unit.html.
 ;;; Globals
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter *test-listener* nil)
-(defparameter *error-listener* 'default-error-listener)
+;(defparameter *test-listener* nil)
+;(defparameter *error-listener* 'default-error-listener)
 
 (defparameter *tests* (make-hash-table))
 
 ;;; Used by RUN-TESTS to collect summary statistics
 (defvar *test-count* 0)
 (defvar *pass-count* 0)
+
+;;; handlers
+(defvar *assertion*)
+(defvar *assertion-passed* #'(lambda (form) (declare (ignore form)) (incf *pass-count*)))
+(defvar *succeed*)
+(defvar *error*)
+(defvar *fail*)
 
 ;;; Set by RUN-TESTS for use by SHOW-FAILURE
 (defvar *test-name* nil)
@@ -186,9 +193,8 @@ For more information, see lisp-unit.html.
 (defmacro assert-true (form &rest extras)
   (expand-assert :result form form t extras))
 
-
 (defun expand-assert (type form body expected extras &key (test #'eql))
-  `(internal-assert
+  `(internal-assert 
     ,type ',form #'(lambda () ,body) #'(lambda () ,expected) ,(expand-extras extras), test))
   
 (defun expand-error-form (form)
@@ -208,7 +214,6 @@ For more information, see lisp-unit.html.
 (defun expand-extras (extras)
   `#'(lambda ()
        (list ,@(mapcan #'(lambda (form) (list `',form form)) extras))))
-    
 
 ;;; RUN-TESTS
 
@@ -231,7 +236,7 @@ For more information, see lisp-unit.html.
 
 (defun get-test-thunks (names &optional (package *package*))
   (mapcar #'(lambda (name) (get-test-thunk name package))
-    names))
+	  names))
 
 (defun get-test-thunk (name &optional (package (symbol-package name)))
   (assert (get-test-code name package) (name package)
@@ -265,7 +270,6 @@ For more information, see lisp-unit.html.
                     table)
            (sort l #'string< :key #'string)))))
 
-
 (defun remove-tests (names &optional (package *package*))
   (let ((table (get-package-table package)))
     (unless (null table)
@@ -279,11 +283,9 @@ For more information, see lisp-unit.html.
       (clrhash *tests*)
     (remhash (find-package package) *tests*)))
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 ;;; DEFINE-TEST support
 
@@ -302,27 +304,16 @@ For more information, see lisp-unit.html.
                  (get-package-table package :create t))
         code))
 
-
 ;;; ASSERTION support
 
 (defun internal-assert (type form code-thunk expected-thunk extras test)
   (let* ((expected (multiple-value-list (funcall expected-thunk)))
          (actual (multiple-value-list (funcall code-thunk)))
          (passed (test-passed-p type expected actual test)))
-    
-    (incf *test-count*)
-    (when passed
-      (incf *pass-count*))
-    
     (record-result passed type form expected actual extras)
-    
     passed))
 
-(defun record-result (passed type form expected actual extras)
-  (funcall (or *test-listener* 'default-listener)
-           passed type *test-name* form expected actual 
-           (and extras (funcall extras))
-           *test-count* *pass-count*))
+
 
 (defun default-error-listener (e test-name)
   (let ((*print-escape* nil))
@@ -352,11 +343,12 @@ For more information, see lisp-unit.html.
 	      (with-output-to-string (str)
 		(format str "Error in ~A: ~A" testname error))
 	      strings)))
-      (let ((*test-listener* #'email-listener)
+      (let ((*test-listener* #'email-listener) ;the fuck?
 	    (*error-listener* #'error-listener))
 	(run-tests-packages packages)))
     (when strings
       (funcall failure-continuation (format nil "~{~A~%~}" (nreverse strings))))))
+
 
 (defun test-passed-p (type expected actual test)
   (ecase type
@@ -425,6 +417,11 @@ For more information, see lisp-unit.html.
     (t "~&Expected ~{~S~^; ~} ~<~%~:;but saw ~{~S~^; ~}~>")
     ))
 
+(defun show-failure-to-string (&rest stuff)
+  (with-output-to-string (s)
+    (let ((*standard-output* s))
+      (apply #'show-failure stuff))))
+
 (defun show-failure (type msg name form expected actual extras)
   (format t "~&~@[~S: ~]~S failed: " name form)
   (format t msg expected actual)
@@ -475,8 +472,169 @@ For more information, see lisp-unit.html.
 		      #'(lambda () nil)
 		      #'eql)))
 		      
-		      
-			
+
+;;; returs sxml
+;;; counts are not right (+++)
+(defmacro with-output-to-junit (&body body)
+  `(let ((cases nil))
+     (with-test-listener (lambda (passed type name form expected actual extras test-count pass-count)
+			   (push `((:|testcase| :|name| ,(string name))
+				   ,@(unless passed
+					     `(((:|failure|
+						  :|type| ,(string type)
+						  :|message| ,(show-failure-to-string type (get-failure-message type)
+										      name form expected actual extras))))))
+				 cases))
+       ,@body)
+     `((:|testsuite|  :|tests| ,(princ-to-string *test-count*)  :|failures| ,(princ-to-string (- *test-count* *pass-count*)))  ;  :|errors| ,*error-count*
+       ,@cases)
+     ))
 
 
 (provide "lisp-unit")
+
+
+#|
+New arch
+
+run-test-suite (package)
+run-test-thunk (symbol)
+internal-assert ...
+
+
+All of these have settable hooks (need to be dynamically nested).
+
+Alternatively, be OOP about it.  
+defclass junit-runner, interactive-runner, etc, and have the above be methods.
+
+(defmethod run-test-suite :around ((runner junit-runner) package)
+  (let ...
+    (call-next-method)
+    (write-xml ...)))
+  
+
+
+|#
+(defclass test-runner () 
+  ((packages :initarg :packages)))
+
+(defvar *test-runner*)
+
+(defmethod run ((runner test-runner))
+  (dolist (package (slot-value runner 'packages))
+    (run-test-suite runner package)))
+
+(defmethod run-test-suite ((runner test-runner) package)
+  (let ((*test-runner* runner))
+    (dolist (test (get-tests package))	;get-tests is old
+      (multiple-value-bind (tests passes errors time)
+	  (run-test runner test)
+	(record-test runner test tests passes errors time)
+	))))
+
+(defmethod record-test ((runner test-runner) test tests passes errors time)
+  (show-summary test tests passes))
+
+(defmethod handle-error ((runner test-runner) test error)
+  (let ((*print-escape* nil))
+    (format t "~&~S: Error: ~W" test error)))
+
+(defun get-test-thunk-n (name &optional (package (symbol-package name)))
+  (assert (get-test-code name package) (name package)
+          "No test defined for ~S in package ~S" name package)
+  (coerce `(lambda () ,@(get-test-code name)) 'function))
+
+(defvar *test*)
+
+;;; test is symbol
+;;; This should be API exported
+(defmethod run-test ((runner test-runner) test)
+  (let ((*test* test)
+	(*test-runner* runner)
+	(thunk (get-test-thunk-n test)))
+    (prog ((*test-count* 0)
+	   (*pass-count* 0)
+	   (error-count 0)
+	   (start-time (get-internal-real-time)))
+       (handler-bind 
+	   ((error #'(lambda (e)
+		       (handle-error runner test e)
+		       (setq error-count 1)
+		       (if (use-debugger-p e) e (go exit)))))
+	 (unless thunk
+	   (error "Test ~S not found" test))
+	 (funcall thunk))
+       exit
+       (return (values *test-count* *pass-count* error-count (- (get-internal-real-time) start-time))))))
+  
+;;; methodize???
+(defun internal-assert (type form code-thunk expected-thunk extras test)
+  (incf *test-count*)
+  (let* ((expected (multiple-value-list (funcall expected-thunk)))
+         (actual (multiple-value-list (funcall code-thunk)))
+         (passed (test-passed-p type expected actual test)))
+    (record-result-n *test-runner* *test* 
+		   passed type form expected actual extras)
+    (when passed
+      (incf *pass-count*))
+    passed))
+
+(defmethod record-result-n ((runner test-runner) test passed type form expected actual extras)
+  (declare (ignore test-count pass-count))
+  (unless passed
+    (record-failure runner test
+		    type (get-failure-message type)
+		    form expected actual (funcall extras))))
+
+(defmethod record-failure ((runner test-runner) test type msg form expected actual extras)
+  (format t "~&~@[~S: ~]~S failed: " test form)
+  (format t msg expected actual)
+  (format t "~{~&   ~S => ~S~}~%" extras)
+  type)
+
+(defclass junit-test-runner (test-runner)
+  (; (output-file :initarg :output-file)
+   ))
+
+(defvar *collection*)
+(defmacro collecting (&body body)
+  `(let ((*collecting* nil))
+     ,@body
+     *collection*))
+(defmacro collect (thing)
+  `(push ,thing *collection*))
+
+;;; Returns s-xml which the caller must write out
+(defmethod run :after ((runner junit-test-runner))
+  `(:testsuites
+    ,(collecting
+      (call-next-method))
+    ))
+
+(defmethod run-test-suite :around ((runner junit-test-runner) package)
+  `(:testsuite
+    ,(collecting
+      (call-next-method))))
+
+(defmethod run-test :around ((runnder junit-test-runner) test)
+  `(:test ,test ,(call-next-method)))
+
+
+
+
+;;; older form
+
+(defmacro with-output-to-junit (&body body)
+  `(let ((cases nil))
+     (with-test-listener (lambda (passed type name form expected actual extras test-count pass-count)
+			   (push `((:|testcase| :|name| ,(string name))
+				   ,@(unless passed
+					     `(((:|failure|
+						  :|type| ,(string type)
+						  :|message| ,(show-failure-to-string type (get-failure-message type)
+										      name form expected actual extras))))))
+				 cases))
+       ,@body)
+     `((:|testsuite|  :|tests| ,(princ-to-string *test-count*)  :|failures| ,(princ-to-string (- *test-count* *pass-count*)))  ;  :|errors| ,*error-count*
+       ,@cases)
+     ))

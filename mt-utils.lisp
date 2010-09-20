@@ -871,7 +871,7 @@ corresponding function."
 	       (find-symbol (symbol-name s) user))
       (shadowing-import s user)
       (export s user)))
-  (use-package usedq user))
+  (use-package used user))
 
 
 ;;; Time

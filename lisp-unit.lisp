@@ -487,6 +487,7 @@ defclass junit-runner, interactive-runner, etc, and have the above be methods.
   (let ((*test* test)
 	(*test-runner* runner)
 	(thunk (get-test-thunk-n test)))
+    (format t "~%Running test ~A" test)
     (prog () ; ((start-time (get-internal-real-time)))
        (handler-bind 
 	   ((error #'(lambda (e)
@@ -494,9 +495,10 @@ defclass junit-runner, interactive-runner, etc, and have the above be methods.
 		       (if (use-debugger-p e) e (go exit)))))
 	 (unless thunk
 	   (error "Test ~S not found" test))
-	 (funcall thunk))
+	 (acl-compat.mp:with-timeout (30 (error "Timed out"))
+	   (funcall thunk)))
        exit
-       ;(return (values *test-count* *pass-count* error-count (- (get-internal-real-time) start-time)))
+					;(return (values *test-count* *pass-count* error-count (- (get-internal-real-time) start-time)))
        )))
   
 ;;; methodize???

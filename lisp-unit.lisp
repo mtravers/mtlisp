@@ -230,12 +230,6 @@ For more information, see lisp-unit.html.
 ;;; RUN-TESTS
 
 ;;; mt addition: run tests in multiple packages with unified running total
-(defun run-tests-packages (packages)
-  (run-test-thunks
-   (mapcan #'(lambda (package)
-	       (mapcar #'(lambda (name) (get-test-thunk name package))
-		       (get-tests package)))
-	   packages)))
 
 (defmacro run-all-tests (package &rest tests)
   `(let ((*package* (find-package ',package)))
@@ -244,16 +238,9 @@ For more information, see lisp-unit.html.
           tests))))
 
 (defmacro run-tests (&rest names)
-  `(run-test-thunks (get-test-thunks ,(if (null names) '(get-tests *package*) `',names))))
-
-(defun get-test-thunks (names &optional (package *package*))
-  (mapcar #'(lambda (name) (get-test-thunk name package))
-	  names))
-
-(defun get-test-thunk (name &optional (package (symbol-package name)))
-  (assert (get-test-code name package) (name package)
-          "No test defined for ~S in package ~S" name package)
-  (list name (coerce `(lambda () ,@(get-test-code name)) 'function)))
+  `(let ((runner (make-instance 'test-runner))) ;hook from old to new system
+     (dolist (test ',names)
+       (run-test runner test))))
 
 (defun use-debugger (&optional (flag t))
   (setq *use-debugger* flag))
@@ -557,7 +544,7 @@ It's pretty undocumented, but samples abound, eg:
 
 ; :|time| ,(format nil "~d" (/ (third result) 1000))
 
-(defmethod run-test :around ((runnder junit-test-runner) test)
+(defmethod run-test :around ((runner junit-test-runner) test)
   (let ((*assertion-counter* 0))
     (call-next-method)))
 
@@ -566,13 +553,13 @@ It's pretty undocumented, but samples abound, eg:
   (unless passed (incf *fail-count*))
   (collect `((:|testcase| :|name| ,(format nil "~A.~A" test (incf *assertion-counter*)))
 	       ,@(unless passed 
-			 `((:|failure| (:|message| ,(failure-message runner test type form expected actual extras))))))))
+			 `((:|failure| :|message| ,(failure-message runner test type form expected actual extras)))))))
 
 (defmethod handle-error ((runner junit-test-runner) test error)
   (incf *error-count*)
   (let ((*print-escape* nil))
     (collect `((:|testcase| :|name| ,(format nil "~A" test))
-	       (:|error| ,(format nil "~&~S: Error: ~W" test error))))))
+	       ((:|error| :|message| ,(format nil "~&~S: Error: ~W" test error)))))))
 
 (defmethod failure-message ((runner test-runner) test type form expected actual extras)
   (with-output-to-string (s)

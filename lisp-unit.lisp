@@ -502,15 +502,11 @@ defclass junit-runner, interactive-runner, etc, and have the above be methods.
 
 (defmethod record-result-n ((runner test-runner) test passed type form expected actual extras)
   (unless passed
-    (record-failure runner test
-		    type 
-		    form expected actual (funcall extras))))
-
-(defmethod record-failure ((runner test-runner) test type msg form expected actual extras)
-  (format t "~&~@[~S: ~]~S failed: " test form)
-  (format t msg expected actual)
-  (format t "~{~&   ~S => ~S~}~%" (funcall extras))
-  type)
+    (let ((msg (get-failure-message type)))
+      (format t "~&~@[~S: ~]~S failed: " test form)
+      (format t msg expected actual)
+      (format t "~{~&   ~S => ~S~}~%" (funcall extras))
+      type)))
 
 #|
 JUnit output format can be sucked up and displayed by Hudson.

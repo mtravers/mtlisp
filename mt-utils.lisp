@@ -1064,7 +1064,7 @@ corresponding function."
 
 (defun fast-whitespacep (char &optional (whitespace *whitespace*))
   #-:SBCL (declare (optimize (speed 3) (safety 0)))
-  (member (the char char) whitespace :test #'eql))
+  (member (the character char) whitespace :test #'eql))
 
 (defun string-fast-whitespacep (string &optional (whitespace *whitespace*))
   #-:SBCL (declare (optimize (speed 3) (safety 0)))

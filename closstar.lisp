@@ -1,6 +1,6 @@
 (defpackage :closstar
   (:nicknames "CLOS*")
-  (:use #+genera clos #+MCL ccl common-lisp)
+  (:use #+genera clos #+CCL ccl common-lisp)
   (:export "DEFCLASS*" "DEFMETHOD*"))
 
 (in-package :clos*)

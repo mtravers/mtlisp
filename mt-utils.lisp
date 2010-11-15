@@ -142,7 +142,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
        `((lambda ,(nreverse ,run-time-vars)  ,wrapped-body)
          . ,(nreverse ,run-time-vals)))))
 
-#-MCL
+#-CCL
 (defmacro let-globally (clauses &body body)
   (let ((temp-vars (mapcar #'(lambda (s) (gensym (symbol-name (car s)))) clauses)))
     `(let ,(mapcar #'(lambda (temp clause) `(,temp ,(car clause))) temp-vars clauses)
@@ -174,7 +174,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
   (once-only (val)
     `(if ,val (return-from ,block ,val))))
 
-#-MCL
+#-CCL ; CCL has this built in
 (defmacro neq (a b)
   `(not (eq ,a ,b)))
 
@@ -500,7 +500,7 @@ returning the list of results.  Order is maintained as one might expect."
     (symbol (symbol-name obj))          ;what about package?
     (t (fast-princ-to-string obj))))
 
-#+MCL
+#+CCL
 (defvar *fast-princ-to-string-stream* 
   (ccl::%make-string-output-stream (make-array 100
 					       :element-type 'character
@@ -508,13 +508,13 @@ returning the list of results.  Order is maintained as one might expect."
 					       :fill-pointer 0)))
 
 ;;; about twice as fast
-#+MCL
+#+CCL
 (defun fast-princ-to-string (obj)
   (princ obj *fast-princ-to-string-stream*)
   (ccl::get-output-stream-string *fast-princ-to-string-stream*))
 
 ;;; for other implementations, do the normal thing
-#-MCL
+#-CCL
 (defun fast-princ-to-string (obj)
   (princ-to-string obj))
 
@@ -599,7 +599,7 @@ returning the list of results.  Order is maintained as one might expect."
   (import 'extensions::defsubst))
 
 #|  This has vanished from Clozure
-#+MCL (pushnew "subst" 
+#+CCL (pushnew "subst" 
                (cdr (assoc 'function ccl::*define-type-alist*)))
 |#
 

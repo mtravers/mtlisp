@@ -22,7 +22,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
 ###################################################################### |#
 
 (defpackage :mt
-  (:use :cl)				;  #+MCL :ccl
+  (:use :cl)				
   (:export ; from mt-utils.lisp
            "DOSEQUENCE" "EXTREME" "EXTREMES" "MAXIMIZE" "MINIMIZE" "MAXIMUMS" "MINIMUMS" "RANDOM-ELEMENT"
 	   "NAMED-LAMBDA" "SYMBOLIZE"

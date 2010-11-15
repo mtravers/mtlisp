@@ -164,7 +164,8 @@ Ancestry: Henry Lieberman's ZStep, my own PSTEP/PTRACE.
 		       result))))
   ;; not working yet.  encapsulate:advise doesn't eval its args, so this wont work
   ;; wait, it's from LSW and OpenMCL...still doesn't work though (? say what?)
-  #+:ABCL
+  
+#+:ABCL
   (let ((newsym (gensym "CTRACE")))
     (encapsulate::advise-2
       (encapsulate::advise-global-def

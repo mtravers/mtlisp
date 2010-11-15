@@ -105,7 +105,7 @@ History:
 
 ;;; defaults to all initable slots
 ;;; +++ this may lose if class isn't properly initalized at macroexpand time
-#+MCL
+#+CCL
 (defmacro make-slot-dumper (class &rest slots)
   (unless slots (setf slots (ccl::class-make-instance-initargs class)))
   `(defmethod slot-dump-forms nconc ((x ,class))

@@ -239,7 +239,7 @@ For more information, see lisp-unit.html.
 
 (defmacro run-tests (&rest names)
   `(let ((runner (make-instance 'test-runner))) ;hook from old to new system
-     (dolist (test ',names)
+     (dolist (test (or ',names (get-tests *package*)))
        (run-test runner test))))
 
 (defun use-debugger (&optional (flag t))

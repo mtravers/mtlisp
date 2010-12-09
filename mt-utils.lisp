@@ -975,6 +975,10 @@ corresponding function."
       (read-sequence buffer p)
       buffer)))
 
+(defun string-to-file (string file)
+  (with-open-file (out file :direction :output :if-exists :supersede)
+    (write-string string out)))
+
 (defun relative-pathname (name &optional directories)
   (make-pathname :defaults (pathname name)
 		 :directory (append (pathname-directory *load-pathname*)

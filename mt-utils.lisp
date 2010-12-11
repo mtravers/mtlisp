@@ -1343,6 +1343,8 @@ Example:
 		    :html-options html-options))
 
 |#
+;; ACL is missing (setf (nthcdr ..)), apparently!
+#-:ALLEGRO   
 (defun delete-keyword-arg (key arglist)
   (awhen (position key arglist)
          (if (zerop it)

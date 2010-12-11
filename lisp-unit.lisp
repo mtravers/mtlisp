@@ -30,6 +30,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 ;;; 
 ;;; Update history:
 ;;;
+;;; 1/10-9/10 various local extensions by Mike Travers
+;;;
 ;;; 04/07/06 added ~<...~> to remaining error output forms [CKR]
 ;;; 04/06/06 added ~<...~> to compact error output better [CKR]
 ;;; 04/06/06 fixed RUN-TESTS to get tests dynamically (bug reported

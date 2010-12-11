@@ -15,7 +15,4 @@
      (:file "closstar")
      (:file "clos-dumper")
      (:file "ctrace")
-; this has disappeared
-;     #+:allegro
-;     (:file "acl-compat")
      ))

@@ -39,7 +39,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
          (nconc ,place
                 (list ,thing))))
 
-(defmacro pushnew-end (item place &key test)
+(defmacro pushnew-end (item place &key (test #'eql))
   `(if (member ,item ,place :test ,test)
      ,place
      (push-end ,item ,place)))
@@ -1343,13 +1343,14 @@ Example:
 		    :html-options html-options))
 
 |#
-;; ACL is missing (setf (nthcdr ..)), apparently!
-#-:ALLEGRO   
+
 (defun delete-keyword-arg (key arglist)
   (awhen (position key arglist)
          (if (zerop it)
              (setf arglist (cddr arglist))
-             (setf (nthcdr it arglist) (nthcdr (+ it 2) arglist))))
+;; ACL is missing (setf (nthcdr ..)), apparently!
+;             (setf (nthcdr it arglist) (nthcdr (+ it 2) arglist))))
+             (setf (cdr (nth it arglist)) (nthcdr (+ it 2) arglist))))
   arglist)
 
 (defun delete-keyword-args (keys arglist)

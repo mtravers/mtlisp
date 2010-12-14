@@ -1,11 +1,11 @@
-(in-package :mt)
+(in-package :cl-user)
 
 
 #| ######################################################################
 
  Structure dumper.
 
-Copyright © 1994-2010 Michael Travers 
+Copyright Â© 1994-97 Michael Travers 
 
 Permission is given to use and modify this code
 as long as the copyright notice is preserved.
@@ -41,7 +41,7 @@ History:
 (defvar *prelude-vars*)
 (defvar *dumper-gensym-counter*)
 
-(defvar *dump-temp-package* (make-package "DUMP-TEMP"))
+(defvar *dump-temp-package* (make-package "DUMP-TEMP" :nicknames '("DT")))
 
 (defun dump (thing)
   (let ((*dump-ht* (make-hash-table :test 'eq))
@@ -105,7 +105,7 @@ History:
 
 ;;; defaults to all initable slots
 ;;; +++ this may lose if class isn't properly initalized at macroexpand time
-#+CCL
+#+MCL
 (defmacro make-slot-dumper (class &rest slots)
   (unless slots (setf slots (ccl::class-make-instance-initargs class)))
   `(defmethod slot-dump-forms nconc ((x ,class))

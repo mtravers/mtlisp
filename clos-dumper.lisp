@@ -41,7 +41,7 @@ History:
 (defvar *prelude-vars*)
 (defvar *dumper-gensym-counter*)
 
-(defvar *dump-temp-package* (make-package "DUMP-TEMP" :nicknames '("DT")))
+(defvar *dump-temp-package* (make-package "DUMP-TEMP"))
 
 (defun dump (thing)
   (let ((*dump-ht* (make-hash-table :test 'eq))

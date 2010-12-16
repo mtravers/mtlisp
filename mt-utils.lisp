@@ -1325,9 +1325,9 @@ example:
 
 ;;; Run a section of code in a background process, errors are reported.  Name must be a string.
 ;;; A closure is made around the body.
-#+:ACL-COMPAT
+
 (defmacro in-background (name &body body)
-  `(acl-compat.mp:process-run-function 
+  `(#+:ALLEGRO mp:process-run-function #+:ACL-COMPAT acl-compat.mp:process-run-function 
     ,name
     #'(lambda () 
         (handler-case (progn ,@body)

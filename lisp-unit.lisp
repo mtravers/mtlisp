@@ -484,7 +484,7 @@ defclass junit-runner, interactive-runner, etc, and have the above be methods.
 		       (if (use-debugger-p e) e (go exit)))))
 	 (unless thunk
 	   (error "Test ~S not found" test))
-	 (acl-compat.mp:with-timeout (30 (error "Timed out"))
+	 (#+:ALLEGRO mp:with-timeout #+:ACL-COMPAT acl-compat.mp:with-timeout (30 (error "Timed out"))
 	   (funcall thunk)))
        exit
 					;(return (values *test-count* *pass-count* error-count (- (get-internal-real-time) start-time)))

@@ -1342,16 +1342,23 @@ Example:
   (link-to-function text (apply #'remote-function url (delete-keyword-args '(:html-options) remote-function-options))
 		    :html-options html-options))
 
+The uncommented version can cons; here's a version that modifies arglist, but it doesn't work in all lisps and has
+the usual risks associated with mutating lists.
+
+(defun delete-keyword-arg (key arglist)
+  (awhen (position key arglist)
+    (if (zerop it)
+	(setf arglist (cddr arglist))
+	(setf (nthcdr it arglist) (nthcdr (+ it 2) arglist))))
+  arglist)
+
 |#
 
 (defun delete-keyword-arg (key arglist)
   (awhen (position key arglist)
-         (if (zerop it)
-             (setf arglist (cddr arglist))
-;; ACL is missing (setf (nthcdr ..)), apparently!
-;             (setf (nthcdr it arglist) (nthcdr (+ it 2) arglist))))
-             (setf (cdr (nth it arglist)) (nthcdr (+ it 2) arglist))))
-  arglist)
+    (if (zerop it)
+	(cddr arglist)
+	(append (subseq arglist 0 it) (nthcdr (+ it 2) arglist)))))
 
 (defun delete-keyword-args (keys arglist)
   (if (null keys) arglist

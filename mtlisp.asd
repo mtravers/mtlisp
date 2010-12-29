@@ -5,6 +5,7 @@
     :author "Mike Travers <mt@hyperphor.com>"
     :description "MT's Common Lisp utilities."
     :licence "Lesser Lisp General Public License"
+    :depends-on (#-:ALLEGRO :acl-compat) ;only needed in a couple of places which can be commented out if need be
     :serial t
     :components 
     ((:file "lisp-unit")

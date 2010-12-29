@@ -164,6 +164,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
   `(and (boundp ',var)
 	,var))
 
+#-:SBCL
 (declaim (ignore ignore))               ; So sue me
 
 (defmacro return-if (val)
@@ -979,6 +980,13 @@ corresponding function."
   (with-open-file (out file :direction :output :if-exists :supersede)
     (write-string string out)))
 
+(defun this-pathname ()
+  "Returns the pathname of the file currently being loaded." 
+  #+:allegro excl:*source-pathname* 
+  #+:ccl (parse-namestring ccl:*loading-file-source-file*) 
+  #-(or :allegro :ccl) 
+  (or *load-pathname* *compile-file-pathname*))
+
 (defun relative-pathname (name &optional directories)
   (make-pathname :defaults (pathname name)
 		 :directory (append (pathname-directory *load-pathname*)
@@ -1016,7 +1024,7 @@ corresponding function."
 
 (defvar *whitespace* '(#\Space #\Tab #\Return #\Newline #\Page #\Null #\Linefeed #+MCL #\312))
 
-(defun string-split (str &optional (char #\space) &key count)
+(defun string-split (str &optional (char #\space) count)
   #.(doc
      "Given a string STR, return a list of the strings between occurances of CHAR.")
   (let ((loc (position char str))
@@ -1113,13 +1121,15 @@ corresponding function."
    (remove-duplicates
     (transitive-closure c 
 			#+:CCL #'ccl:class-direct-subclasses
-			#+:ACL #'mop:class-direct-subclasses)))
+			#+:ACL #'mop:class-direct-subclasses
+			#+:SBCL #'sb-mop:class-direct-subclasses)))
 
 (defmethod superclasses ((c class))
   (remove-duplicates
    (transitive-closure c 
 		       #+:CCL #'ccl:class-direct-superclasses
-		       #+:ACL #'mop:class-direct-superclasses)))
+		       #+:ACL #'mop:class-direct-superclasses
+		       #+:SBCL #'sb-mop:class-direct-superclasses)))
 
 (defclass plist-mixin () ((plist :initform nil)))
 

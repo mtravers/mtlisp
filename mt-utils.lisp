@@ -983,7 +983,7 @@ corresponding function."
 (defun this-pathname ()
   "Returns the pathname of the file currently being loaded." 
   #+:allegro excl:*source-pathname* 
-  #+:ccl (parse-namestring ccl:*loading-file-source-file*) 
+  #+:ccl (when ccl:*loading-file-source-file* (parse-namestring ccl:*loading-file-source-file*))
   #-(or :allegro :ccl) 
   (or *load-pathname* *compile-file-pathname*))
 

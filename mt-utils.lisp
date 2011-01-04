@@ -578,6 +578,11 @@ returning the list of results.  Order is maintained as one might expect."
             do (setf (schar string i) (schar to pos)))))
   string)
 
+(defun vector->string (v &optional (len (length v)))
+  (let ((string (make-string len)))
+    (dotimes (i len)
+      (setf (char string i) (code-char (aref v i)))) 
+    string))
 
 ;;; inefficient, if the purpose is to make long lists manageable.  Easy to fix.
 (defun list-truncate (list length)
@@ -1374,12 +1379,7 @@ the usual risks associated with mutating lists.
   (if (null keys) arglist
       (delete-keyword-arg (car keys) (delete-keyword-args (cdr keys) arglist))))
 
-;;; not used or exported
-(defun vector->string (v)
-  (let ((string (make-string (length v))))
-    (dotimes (i (length v))
-      (setf (char string i) (code-char (aref v i)))) 
-    string))
+
 
 (provide :mt-utils)
 

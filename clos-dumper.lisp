@@ -105,13 +105,16 @@ History:
 
 ;;; defaults to all initable slots
 ;;; +++ this may lose if class isn't properly initalized at macroexpand time
-#+MCL
+
+;;; version that can deal with unbound slots
 (defmacro make-slot-dumper (class &rest slots)
-  (unless slots (setf slots (ccl::class-make-instance-initargs class)))
+  #+CCL (unless slots (setf slots (ccl::class-make-instance-initargs class)))
   `(defmethod slot-dump-forms nconc ((x ,class))
-     (list ,@(loop for s in slots
-                   collect (mt:keywordize s)
-                   collect `(dump-form (slot-value x ',s))))))
+     (mt:collecting
+       (dolist (s ',slots)
+	 (when (slot-boundp x s)
+	   (mt:collect (mt:keywordize s))
+	   (mt:collect (dump-form (slot-value x s))))))))
 
 (defmethod dump-form ((l list))
   (cond ((null l) nil)

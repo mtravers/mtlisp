@@ -1370,16 +1370,15 @@ the usual risks associated with mutating lists.
 |#
 
 (defun delete-keyword-arg (key arglist)
-  (awhen (position key arglist)
+  (aif (position key arglist)
     (if (zerop it)
 	(cddr arglist)
-	(append (subseq arglist 0 it) (nthcdr (+ it 2) arglist)))))
+	(append (subseq arglist 0 it) (nthcdr (+ it 2) arglist)))
+    arglist))
 
 (defun delete-keyword-args (keys arglist)
   (if (null keys) arglist
       (delete-keyword-arg (car keys) (delete-keyword-args (cdr keys) arglist))))
-
-
 
 (provide :mt-utils)
 

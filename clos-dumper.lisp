@@ -1,11 +1,11 @@
-(in-package :cl-user)
+(in-package :mt)
 
 
 #| ######################################################################
 
  Structure dumper.
 
-Copyright © 1994-97 Michael Travers 
+Copyright © 1994-2011 Michael Travers 
 
 Permission is given to use and modify this code
 as long as the copyright notice is preserved.
@@ -36,12 +36,15 @@ History:
 
 ###################################################################### |#
 
+(export '(dump dump-form slot-dump-forms dump-to-file
+	  make-slot-dumper))
+
 (defvar *dump-ht*)                      ; Bound
 (defvar *prepass* nil)
 (defvar *prelude-vars*)
 (defvar *dumper-gensym-counter*)
 
-(defvar *dump-temp-package* (make-package "DUMP-TEMP"))
+(defvar *dump-temp-package* (make-package "DUMP-TEMP" :nicknames '("MTDT")))
 
 (defun dump (thing)
   (let ((*dump-ht* (make-hash-table :test 'eq))
@@ -90,9 +93,13 @@ History:
          (cadr hash-result))
         (t (error "ugh"))))))
 
-;;; Most things dump as themselves
+;;; Default is to dump as self
 (defmethod dump-form ((d t))
   d)
+
+;;; Perhaps this should be default
+(defmethod dump-form ((d symbol))
+  `(quote ,d))
 
 (defmethod dump-form ((d standard-object))
   `(make-instance ',(class-name (class-of d)) ,@(slot-dump-forms d)))

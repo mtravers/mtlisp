@@ -1312,12 +1312,12 @@ example:
      (print `(result ,value))
      value))
 
-;;; Error handling -- returns condition if error happens
+;;; Like ignore-errors, but will output the error message 
 (defmacro report-and-ignore-errors (&body body)
   `(handler-case (progn ,@body)
      (error (condition) 
             (format *debug-stream* "~%Error: ~A~%" condition)
-	    condition)))
+	    (values nil condition))))
 
 (defmacro let*-debug (forms &body body)
   `(let* ,(mapcar #'(lambda (form)

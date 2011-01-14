@@ -26,7 +26,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
   (:export ; from mt-utils.lisp
            "DOSEQUENCE" "EXTREME" "EXTREMES" "MAXIMIZE" "MINIMIZE" "MAXIMUMS" "MINIMUMS" "RANDOM-ELEMENT"
 	   "NAMED-LAMBDA" "SYMBOLIZE"
-           "DO-FOR-ARRAY-ELEMENTS" "CIRCULAR-LIST" "PUSH-END" "PUSHNEW-END" "FRINGE"
+           "DO-FOR-ARRAY-ELEMENTS" "CIRCULAR-LIST" "PUSH-END" "POP-END" "PUSHNEW-END" "FRINGE"
            "MAPAPPEND" "MAPUNION" "MAPCROSS" "MAPSUBSETS" "MAPSUM" "MAPTREE" "FLATTEN"
 	   "UNION*" "INTERSECTION*"
 	   "SPLIT-LIST" "FILTER" "FILTER-OUT"
@@ -62,7 +62,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            "DUMP-HT" "HT-CONTENTS" "HASH-KEYS"
            "DUMP-VARS-TO-FILE" "DUMP-VAR-TO-FILE"
            "DEFBIT"
-           "FIRSTN" "BREAK-LIST"
+           "FIRSTN" "SUBSEQ-SAFE" "BREAK-LIST"
 	   "ITRACE" "REPORT-AND-IGNORE-ERRORS"
 	   "NOW" 
 	   "WITHOUT-INTERRUPTS" "IN-BACKGROUND"

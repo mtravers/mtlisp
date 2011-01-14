@@ -39,6 +39,16 @@ NOTE: This is the canonical version!  Accept no substitutes.
          (nconc ,place
                 (list ,thing))))
 
+(defmacro pop-end (place)
+  `(let* ((last (last ,place 2))
+	  (v (cadr last)))
+     (if (null (cdr last))
+	 (pop ,place)
+	 (progn
+	   (rplacd last nil)
+	   v))))
+     
+
 (defmacro pushnew-end (item place &key (test #'eql))
   `(if (member ,item ,place :test ,test)
      ,place
@@ -63,11 +73,14 @@ NOTE: This is the canonical version!  Accept no substitutes.
 		       (return list))
 		(return (cons new list)))))))
 
-;;; or subseq-safe
 (defun firstn (list n)
   (if (>= n (length list))
     list
     (subseq list 0 n)))
+
+;;; Could be even safer I suppose
+(defun subseq-safe (list from &optional to)
+  (subseq list from (and to (min to (length list)))))
 
 (defun break-list (l n)
   "Break LIST into sublists of length N"

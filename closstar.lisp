@@ -127,7 +127,7 @@ CLOS version 13 August 90
                     ,@decls
            (with-slots ,use-slots ,(caar lambda-list)
              ;; Eliminate compiler warnings
-             #+:CCL (declare (ccl::ignore-if-unused ,@use-slots)) 
+             (declare (ignorable ,@use-slots)) 
              ,@main-body))))))
 
 ;; not sure where this worked, but it doesn't in ACL6.2 or ABCL or SBCL or CCL...

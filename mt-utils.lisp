@@ -231,6 +231,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
      (flet ((collect (thing) (push thing %results))
 	    (collect-if (thing) (when thing (push thing %results)))
 	    (collect-new (thing &optional (test #'eql)) (pushnew thing %results :test test)))
+       (declare (ignorable (function collect) (function collect-if) (function collect-new)))
        ,@body)
      (nreverse %results)))
 
@@ -1190,7 +1191,7 @@ corresponding function."
       `(let ((,sym ,(car clause)))
          (if ,sym
            (let ((it ,sym))
-	     #+CCL (declare (ccl::ignore-if-unused it))
+	     (declare (ignorable it))
 	     ,@(cdr clause))
            (acond ,@(cdr clauses)))))))
 

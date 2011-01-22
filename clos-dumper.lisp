@@ -36,7 +36,7 @@ History:
 
 ###################################################################### |#
 
-(export '(dump dump-form slot-dump-forms dump-to-file
+(export '(dump dump-form slot-dump-forms dump-to-file dump-to-stream dump-to-string
 	  make-slot-dumper))
 
 (defvar *dump-ht*)                      ; Bound
@@ -169,7 +169,7 @@ History:
 ;;; Note:  it would be nice to dump directly to a compiled form, but MCL doesn't
 ;;; have hooks for this.
 
-(defvar *dumping-to-file* nil)
+(defvar *dumping-to-file* nil)		;+++ doesn't do anything...I suppose dump funs can examine
 
 (defun dump-to-file (thing file &key (compile t) prelude (package *package*))
   (let ((*package* (find-package package))
@@ -181,3 +181,13 @@ History:
         (print (dump thing) stream)))
     (when compile
       (compile-file file))))
+
+(defun dump-to-stream (object stream)
+  (let ((*print-pretty* nil)
+	(*print-miser-width* 120)
+	(*print-readably* t))
+    (prin1 (dump object) stream)))
+
+(defun dump-to-string (object)
+  (with-output-to-string (s)
+    (dump-to-stream object s)))

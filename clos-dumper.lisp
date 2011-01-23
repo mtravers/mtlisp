@@ -36,7 +36,7 @@ History:
 
 ###################################################################### |#
 
-(export '(dump dump-form slot-dump-forms dump-to-file dump-to-stream dump-to-string
+(export '(dump dump-form slot-dump-forms dump-to-file dump-to-stream dump-to-string dump-copy
 	  make-slot-dumper))
 
 (defvar *dump-ht*)                      ; Bound
@@ -191,3 +191,7 @@ History:
 (defun dump-to-string (object)
   (with-output-to-string (s)
     (dump-to-stream object s)))
+
+;;; Create a new object EQUAL (loosely speaking) but not EQ to the argument
+(defun dump-copy (object)
+  (eval (dump object)))

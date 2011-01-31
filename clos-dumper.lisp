@@ -101,6 +101,22 @@ History:
 (defmethod dump-form ((d symbol))
   `(quote ,d))
 
+(defmethod dump-form ((d null))
+  nil)
+
+(defmethod dump-form ((l list))
+  (cond ;; nil handled by separate method
+	((eq 'quote (car l))
+	 l)
+        ((null (cdr (last l)))
+         `(list ,@(mapcar #'dump-form l)))      ; regular lists
+        (t 
+         `(cons ,(dump-form (car l)) ,(dump-form (cdr l))))))   ; dotted lists
+
+;;; Pretty inefficient, since it translates sequences to/from lists
+(defmethod dump-form ((s sequence))
+  `(rebuild-sequence ',(type-of s) ,(length s) ,@(mapcar #'dump-form (coerce s 'list))))
+
 (defmethod dump-form ((d standard-object))
   `(make-instance ',(class-name (class-of d)) ,@(slot-dump-forms d)))
 
@@ -123,16 +139,7 @@ History:
 	   (mt:collect (mt:keywordize s))
 	   (mt:collect (dump-form (slot-value x s))))))))
 
-(defmethod dump-form ((l list))
-  (cond ((null l) nil)
-        ((null (cdr (last l)))
-         `(list ,@(mapcar #'dump-form l)))      ; regular lists
-        (t 
-         `(cons ,(dump-form (car l)) ,(dump-form (cdr l))))))   ; dotted lists
 
-;;; Pretty inefficient, since it translates sequences to/from lists
-(defmethod dump-form ((s sequence))
-  `(rebuild-sequence ',(type-of s) ,(length s) ,@(mapcar #'dump-form (coerce s 'list))))
 
 #|  this may work better in MCL4, types are now length specific and LENGTH does not return the right thing sometimes
 (defmethod dump-form ((s sequence))

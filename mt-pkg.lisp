@@ -72,6 +72,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
 	   "ONE-STRING" "DOC"
            *WHITESPACE*
 	   "DELETE-KEYWORD-ARGS" "DELETE-KEYWORD-ARG"
+	   "PLET" "PLET*"
            ;; CTRACE
            "CTRACE" "WITH-CTRACE" "CTRACE-FUNCTION" "UNCTRACE-FUNCTION" "CTRACE-ALL" "CT"
            "WITH-CTRACING" "START-CTRACE" "STOP-CTRACE" "VIEW-CTRACE" "*LAST-CTRACE*"

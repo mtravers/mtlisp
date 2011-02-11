@@ -1397,5 +1397,23 @@ the usual risks associated with mutating lists.
   (if (null keys) arglist
       (delete-keyword-arg (car keys) (delete-keyword-args (cdr keys) arglist))))
 
+;;; Debugging
+;;; Substitute these for let or let* to get a trace of the binding forms. Damn useful!
+(defmacro plet* (bind-forms &body body)
+  `(let* ,(mapcar #'(lambda (form)
+		      `(,(car form) (let ((v ,(cadr form)))
+				      (print (list ',(car form) v))
+				      v)))
+		  bind-forms)
+     ,@body))
+
+(defmacro plet (bind-forms &body body)
+  `(let ,(mapcar #'(lambda (form)
+		      `(,(car form) (let ((v ,(cadr form)))
+				      (print (list ',(car form) v))
+				      v)))
+		  bind-forms)
+     ,@body))
+
 (provide :mt-utils)
 

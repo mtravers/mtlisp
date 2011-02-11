@@ -477,12 +477,14 @@ returning the list of results.  Order is maintained as one might expect."
        (subst-start t))
       ((null subst-start)
        ;; Apply is limited to some relatively small number of args
-       (if (and (eq sequence-type 'string)
-		(> (length substrings) 200))
-	   (big-concatenate-strings (nreverse substrings))
-	   (apply #'concatenate
-		  sequence-type
-		  (nreverse substrings))))
+       (cond ((and (eq sequence-type 'string)
+		   (> (length substrings) 200))
+	      (big-concatenate-strings (nreverse substrings)))
+;	     ((null (cdr substrings))
+;	      (car substrings))
+	     (t (apply #'concatenate
+		       sequence-type
+		       (nreverse substrings)))))
     (setq subst-start (search find string :start2 from :end2 end :test test))
     (push (subseq string from subst-start) substrings)
     (when subst-start
@@ -1043,6 +1045,7 @@ corresponding function."
 
 (defvar *whitespace* '(#\Space #\Tab #\Return #\Newline #\Page #\Null #\Linefeed #+MCL #\312))
 
+;;; +++ punt this and use regexps
 (defun string-split (str &optional (char #\space) count)
   #.(doc
      "Given a string STR, return a list of the strings between occurances of CHAR.")

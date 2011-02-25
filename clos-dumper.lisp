@@ -189,9 +189,12 @@ History:
     (when compile
       (compile-file file))))
 
-(defun dump-to-stream (object stream)
-  (let ((*print-pretty* nil)
-	(*print-miser-width* 120)
+
+;;; *print-pretty* turns on ' notation, but of course also lards it up with whitespace. There 
+;;; doesn't seem to be any easy way to get one without the other
+(defun dump-to-stream (object stream &key pretty?)
+  (let ((*print-pretty* pretty?)
+	(*print-miser-width* nil)
 	(*print-readably* t))
     (prin1 (dump object) stream)))
 

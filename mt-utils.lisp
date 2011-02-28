@@ -95,6 +95,22 @@ NOTE: This is the canonical version!  Accept no substitutes.
          (unless (find elt l2 :test test)
            (return nil)))))
 
+(defun stable-nset-difference (list1 list2 &key (test #'eql))
+  #.(doc
+     "Like NSET-DIFFERENCE, but preserves the order of the LIST1 argument")
+  (do ((rest list1)
+       (head nil)
+       (tail nil))
+      ((endp rest) head)
+    (unless (member (car rest) list2 :test test)
+      (if (null head)
+	  (setf head rest
+		tail rest)
+	  (progn
+	    (rplacd tail rest)
+	    (setf tail rest))))
+    (pop rest)))
+
 ;;; for descending down alist type structures, esp. those in JSON like form
 (defun findprop (prop structure)
   (cadr (member prop structure :test #'equal)))

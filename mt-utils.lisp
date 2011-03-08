@@ -34,6 +34,15 @@ NOTE: This is the canonical version!  Accept no substitutes.
 (defmacro removef (thing place &rest remove-args)
   `(setf ,place (remove ,thing ,place ,@remove-args)))
 
+;;; Like push, but will remove an existing element if its already there. A typical use 
+;;; is managing lists of tagged structures. KEY is applied to THING as well as to the elements
+;;; of PLACE, and in fact this operation only makes sense with a KEY arg.
+;;; should have once-only +++
+(defmacro replacef (thing place &rest delete-args &key (key #'identity) &allow-other-keys)
+  `(progn
+     (deletef (funcall ,key ,thing) ,place ,@delete-args)
+     (push ,thing ,place)))
+
 (defmacro push-end (thing place)
   `(setf ,place
          (nconc ,place
@@ -47,7 +56,6 @@ NOTE: This is the canonical version!  Accept no substitutes.
 	 (progn
 	   (rplacd last nil)
 	   v))))
-     
 
 (defmacro pushnew-end (item place &key (test #'eql))
   `(if (member ,item ,place :test ,test)
@@ -229,6 +237,11 @@ NOTE: This is the canonical version!  Accept no substitutes.
        ,result)
       (setq ,var (elt ,sequence ,index))
       ,@body)))
+
+(defun mapsequence (proc sequence)
+  (collecting
+    (dosequence (v sequence)
+      (collect (funcall proc v)))))
 
 (defmacro do-for-array-elements (array vars &body body)
   `(let ((array-dimensions (array-dimensions ,array)))

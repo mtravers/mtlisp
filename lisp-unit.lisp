@@ -1,3 +1,5 @@
+;;; DEPRECATED -- I'm switching over to 5am and you should too
+
 ;;; see http://www.cs.northwestern.edu/academics/courses/325/readings/lisp-unit.html
 
 ;;;-*- Mode: Lisp; Package: LISP-UNIT -*-

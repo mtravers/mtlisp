@@ -995,12 +995,15 @@ corresponding function."
       (return)
       (write-char char out))))
 
+(defmacro dolines ((var s) &body body)
+  `(do ((,var (read-line ,s nil :eof)
+	      (read-line ,s nil :eof)))
+       ((eq ,var :eof))
+     ,@body))
+
 (defun stream-copy-by-lines (in out)
-  (do (line) (())
-    (setq line (read-line in nil :eof))
-    (if (eq line :eof)
-      (return)
-      (write-line line out))))
+  (dolines (line s)
+    (write-line line out)))
 
 (defun file-copy (in out)
   (with-open-file (ins in)

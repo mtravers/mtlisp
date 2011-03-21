@@ -4,7 +4,7 @@
 
  Random Lisp utilities
 
-Copyright © 1994-2010 Michael Travers
+Copyright Â© 1994-2010 Michael Travers
 Permission is given to use and modify this code as long
 as the copyright notice is preserved.
 
@@ -1430,17 +1430,21 @@ the usual risks associated with mutating lists.
 ;;; Substitute these for let or let* to get a trace of the binding forms. Damn useful!
 (defmacro plet* (bind-forms &body body)
   `(let* ,(mapcar #'(lambda (form)
-		      `(,(car form) (let ((v ,(cadr form)))
-				      (print (list ',(car form) v))
-				      v)))
+		      (if (listp form)
+			  `(,(car form) (let ((v ,(cadr form)))
+					  (print (list ',(car form) v))
+					  v))
+			  form))
 		  bind-forms)
      ,@body))
 
 (defmacro plet (bind-forms &body body)
   `(let ,(mapcar #'(lambda (form)
+		     (if (listp form)
 		      `(,(car form) (let ((v ,(cadr form)))
 				      (print (list ',(car form) v))
-				      v)))
+				      v))
+		      form))
 		  bind-forms)
      ,@body))
 

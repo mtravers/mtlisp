@@ -995,9 +995,9 @@ corresponding function."
       (return)
       (write-char char out))))
 
-(defmacro dolines ((var s) &body body)
-  `(do ((,var (read-line ,s nil :eof)
-	      (read-line ,s nil :eof)))
+(defmacro dolines ((var stream) &body body)
+  `(do ((,var (read-line ,stream nil :eof)
+	      (read-line ,stream nil :eof)))
        ((eq ,var :eof))
      ,@body))
 

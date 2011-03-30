@@ -120,6 +120,15 @@ History:
 (defmethod dump-form ((d standard-object))
   `(make-instance ',(class-name (class-of d)) ,@(slot-dump-forms d)))
 
+(defmethod dump-form ((ht hash-table))
+  `(undump-ht ',(hash-table-test ht) ',(ht-contents ht)))
+
+(defun undump-ht (test contents)
+  (let ((ht (make-hash-table :test test)))
+    (dolist (elt contents)
+      (setf (gethash (car elt) ht) (cadr elt)))
+    ht))  
+
 (defgeneric slot-dump-forms (d)
   (:method-combination nconc))
 
@@ -184,8 +193,7 @@ History:
     (with-open-file (stream file :direction :output :if-exists :supersede)
       (print `(in-package ,(package-name *package*)) stream)
       (print prelude stream)
-      (let ((*print-array* t))
-        (print (dump thing) stream)))
+      (dump-to-stream thing stream))
     (when compile
       (compile-file file))))
 

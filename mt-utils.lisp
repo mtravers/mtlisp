@@ -243,6 +243,9 @@ NOTE: This is the canonical version!  Accept no substitutes.
     (dosequence (v sequence)
       (collect (funcall proc v)))))
 
+(defun last-elt (seq)
+  (elt seq (1- (length seq))))
+
 (defmacro do-for-array-elements (array vars &body body)
   `(let ((array-dimensions (array-dimensions ,array)))
      (do-for-array-elements-1 ,array ,vars 0 ,@body)))
@@ -1165,6 +1168,9 @@ corresponding function."
 		   (return-from ht-contents result)))
            ht)
     result))
+
+
+
 
 (defun hash-keys (ht)
   (loop for k being the hash-keys of ht collect k))

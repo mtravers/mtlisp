@@ -106,18 +106,24 @@ NOTE: This is the canonical version!  Accept no substitutes.
 (defun stable-nset-difference (list1 list2 &key (test #'eql))
   #.(doc
      "Like NSET-DIFFERENCE, but preserves the order of the LIST1 argument")
-  (do ((rest list1)
+  (do ((rest list1 (cdr rest))
+       (prev nil rest)
        (head nil)
-       (tail nil))
-      ((endp rest) head)
-    (unless (member (car rest) list2 :test test)
-      (if (null head)
-	  (setf head rest
-		tail rest)
-	  (progn
-	    (rplacd tail rest)
-	    (setf tail rest))))
-    (pop rest)))
+       (splice-to nil))
+      ((endp rest)
+       (when splice-to
+	 (rplacd splice-to nil))
+       head)
+    (if (member (car rest) list2 :test test)
+	(progn
+	  (unless splice-to
+	    (setf splice-to prev)))
+	(progn 
+	  (when (null head)
+	    (setf head rest))
+	  (when splice-to
+	    (rplacd splice-to rest)
+	    (setf splice-to nil))))))
 
 ;;; for descending down alist type structures, esp. those in JSON like form
 (defun findprop (prop structure)
@@ -1443,6 +1449,16 @@ the usual risks associated with mutating lists.
 				      v)))
 		  bind-forms)
      ,@body))
+
+(defmacro pcond (&body clauses)
+  `(cond ,@(mapcar #'(lambda (clause)
+		      `((let ((x ,(car clause)))
+			  (print (list ',(car clause) '=> x))
+			  x)
+			,@(cdr clause)))
+		  clauses)))
+
+;;; +++ TBD: a (ptrace <form>) that can be wrapped around any normal function call sexp
 
 (provide :mt-utils)
 

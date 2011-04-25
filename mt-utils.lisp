@@ -430,6 +430,7 @@ returning the list of results.  Order is maintained as one might expect."
 
 
 ; +++ key args are slow
+;;; +++ rewrite to use remove-if
 (defun filter (predicate list &key key &aux wheat)
   "Return only the elements of list meeting PREDICATE"
   (dolist (elt list (nreverse wheat))
@@ -441,6 +442,11 @@ returning the list of results.  Order is maintained as one might expect."
   (dolist (elt list (nreverse wheat))
     (unless (funcall predicate (if key (funcall key elt) elt))
       (push elt wheat))))
+
+(defun find-all (item sequence &key (key #'identity) (test #'eql))
+  (remove-if-not #'(lambda (elt)
+		     (funcall test item (funcall key elt)))
+		 sequence))
 
 ;;; Not very efficient, see biolisp for better one
 (defun flatten (tree)

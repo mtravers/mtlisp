@@ -456,6 +456,16 @@ returning the list of results.  Order is maintained as one might expect."
 		 (flatten (cdr tree))))
 	(t (list tree))))
 
+(defun group (list &key (key #'identity) (test #'eql))
+  (let ((result nil))
+    (dolist (elt list)
+      (block elt
+	(dolist (cluster result)
+	  (when (funcall test (funcall key elt) (funcall key (car cluster)))
+	    (push-end elt cluster)
+	    (return-from elt)))
+	(push (list elt) result)))
+    (nreverse result)))
 
 ;;; String Utilities
 

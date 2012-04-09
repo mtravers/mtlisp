@@ -4,7 +4,7 @@
 
  CTRACE - internal tracing facility
 
-Copyright © 1994-97 Michael Travers 
+Copyright (c) 1994-97 Michael Travers 
 
 Permission is given to use and modify this code
 as long as the copyright notice is preserved.

@@ -4,7 +4,7 @@
 
  Package definition for Mike Travers' utilities.
 
-Copyright © 1994-97 Michael Travers
+Copyright (c) 1994-97 Michael Travers
 
 Permission is given to use and modify this code
 as long as the copyright notice is preserved.
@@ -58,6 +58,7 @@ Send questions, comments, and fixes to mt@media.mit.edu.
            "PLIST-MIXIN" "OGET" "OPUT" "CALL-IF"
 
            "SET-EQUAL" "STABLE-NSET-DIFFERENCE" "CURRY" "RCURRY" "TRANSITIVE-CLOSURE" "TRANSITIVE-CLOSURE-PROCEDURE"
+	   "LISTIFY" "UNLISTIFY"
 	   "FINDPROP" "ASSOCDR" "ASSOCADR"
            "DUMP-HT" "HT-CONTENTS" "HASH-KEYS"
            "DUMP-VARS-TO-FILE" "DUMP-VAR-TO-FILE"

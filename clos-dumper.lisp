@@ -5,7 +5,7 @@
 
  Structure dumper.
 
-Copyright © 1994-2011 Michael Travers 
+Copyright (c) 1994-2011 Michael Travers 
 
 Permission is given to use and modify this code
 as long as the copyright notice is preserved.
@@ -45,6 +45,9 @@ History:
 (defvar *dumper-gensym-counter*)
 
 (defvar *dump-temp-package* (make-package "DUMP-TEMP" :nicknames '("MTDT")))
+
+(defun dump-var (var)
+  `(setq ,var (dump (symbol-value var))))
 
 (defun dump (thing)
   (let ((*dump-ht* (make-hash-table :test 'eq))
@@ -197,6 +200,16 @@ History:
     (when compile
       (compile-file file))))
 
+(defun dump-var-to-file (var file &key (compile t) prelude (package *package*))
+  (let ((*package* (find-package package))
+        (*dumping-to-file* (pathname file)))
+    (with-open-file (stream file :direction :output :if-exists :supersede)
+      (print `(in-package ,(package-name *package*)) stream)
+      (print prelude stream)
+      (let ((*print-array* t))
+        (print `(setq ,var ,(dump (symbol-value var))) stream)))
+    (when compile
+      (compile-file file))))
 
 ;;; *print-pretty* turns on ' notation, but of course also lards it up with whitespace. There 
 ;;; doesn't seem to be any easy way to get one without the other

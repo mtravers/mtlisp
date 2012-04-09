@@ -4,7 +4,7 @@
 
  Random Lisp utilities
 
-Copyright © 1994-2010 Michael Travers
+Copyright (c) 1994-2010 Michael Travers
 Permission is given to use and modify this code as long
 as the copyright notice is preserved.
 
@@ -125,7 +125,18 @@ NOTE: This is the canonical version!  Accept no substitutes.
 	    (rplacd splice-to rest)
 	    (setf splice-to nil))))))
 
-;;; for descending down alist type structures, esp. those in JSON like form
+(defun listify (thing)
+  (if (listp thing)
+      thing
+      (list thing)))
+
+(defun unlistify (thing)
+  (if (and (consp thing) 
+	   (null (cdr thing)))		;(= 1 (length thing)), but faster
+      (first thing)
+      thing))
+
+;;; for descending down alist type structures, esp. those in JSON-like form
 (defun findprop (prop structure)
   (cadr (member prop structure :test #'equal)))
 
@@ -230,6 +241,32 @@ NOTE: This is the canonical version!  Accept no substitutes.
 	((listp list)
 	 (append (fringe (car list)) (fringe (cdr list))))
 	(t (list list))))
+
+;;; Collecting and relatives
+
+(defmacro collecting (&body body)
+  `(let ((%results nil))
+     (flet ((collect (thing) (push thing %results))
+	    (collect-if (thing) (when thing (push thing %results)))
+	    (collect-new (thing &optional (test #'eql)) (pushnew thing %results :test test)))
+       (declare (ignorable (function collect) (function collect-if) (function collect-new)))
+       ,@body)
+     (nreverse %results)))
+
+(defmacro summing (&body body)
+  `(let ((%result 0))
+     (flet ((sum (thing) (incf %result thing)))
+       ,@body)
+     %result))
+
+(defmacro accumulating (init func &body body)
+  `(let ((%result ,init))
+     (flet ((accumulate (thing)
+	      (setf %result (funcall ,func %result thing))))
+       ,@body)
+     %result))
+
+
 ;;; Iteration and Mapping
 
 ;;; Like dolist, but works with any sequence
@@ -263,28 +300,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
 	   ,@body))
       `(progn ,@body)))
 
-;;; do-collect
-(defmacro collecting (&body body)
-  `(let ((%results nil))
-     (flet ((collect (thing) (push thing %results))
-	    (collect-if (thing) (when thing (push thing %results)))
-	    (collect-new (thing &optional (test #'eql)) (pushnew thing %results :test test)))
-       (declare (ignorable (function collect) (function collect-if) (function collect-new)))
-       ,@body)
-     (nreverse %results)))
 
-(defmacro summing (&body body)
-  `(let ((%result 0))
-     (flet ((sum (thing) (incf %result thing)))
-       ,@body)
-     %result))
-
-(defmacro accumulating (init func &body body)
-  `(let ((%result ,init))
-     (flet ((accumulate (thing)
-	      (setf %result (funcall ,func %result thing))))
-       ,@body)
-     %result))
 
 ;;; generalized good iterator.
 
@@ -715,6 +731,20 @@ returning the list of results.  Order is maintained as one might expect."
            (setf (gethash ,(car arglist) ,ht)
                  (block ,name
                      ,@body)))))))
+
+(defmacro cached-lambda (arglist &body body)
+  (let ((ht (make-hash-table :test #'eql)))
+     `(lambda ,arglist
+	(multiple-value-bind (val found)
+	    (gethash ,(car arglist) ,ht)
+	  (if found 
+	      val
+	      (setf (gethash ,(car arglist) ,ht)
+		    (progn
+		      ,@body)))))))
+
+
+
 
 (defun symbolize (thing)
   (etypecase thing
@@ -1191,11 +1221,15 @@ corresponding function."
            ht)
     result))
 
-
-
-
 (defun hash-keys (ht)
   (loop for k being the hash-keys of ht collect k))
+
+(defun ht-invert (ht)
+  (let ((invert (make-hash-table :test (hash-table-test ht))))
+    (loop for k being the hash-keys of ht
+	 for v being the hash-values of ht
+	 do (dolist (elt v) (setf (gethash elt invert) k)))
+    invert))
 
 ;;; CLOS utilities
 
@@ -1459,10 +1493,12 @@ the usual risks associated with mutating lists.
 
 ;;; Debugging
 ;;; Substitute these for let or let* to get a trace of the binding forms. Damn useful!
+;;; Also will set correspond *<var> symbols, also quite useful
 (defmacro plet* (bind-forms &body body)
   `(let* ,(mapcar #'(lambda (form)
 		      (if (listp form)
 			  `(,(car form) (let ((v ,(cadr form)))
+					  (setq ,(symbol-conc '* (car form)) v)
 					  (print (list ',(car form) v))
 					  v))
 			  form))
@@ -1473,6 +1509,7 @@ the usual risks associated with mutating lists.
   `(let ,(mapcar #'(lambda (form)
 		     (if (listp form)
 		      `(,(car form) (let ((v ,(cadr form)))
+				      (setq ,(symbol-conc '* (car form)) v)
 				      (print (list ',(car form) v))
 				      v))
 		      form))

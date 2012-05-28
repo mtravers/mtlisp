@@ -1,4 +1,4 @@
-(load "~/quicklisp/setup.lisp")
+(require :asdf)
 
 (load (make-pathname :directory (pathname-directory *load-pathname*)
 		     :defaults "mtlisp.asd"))

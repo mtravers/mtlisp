@@ -37,20 +37,23 @@ History:
 ###################################################################### |#
 
 (export '(dump dump-form slot-dump-forms dump-to-file dump-to-stream dump-to-string dump-copy
-	  make-slot-dumper))
+	  make-slot-dumper *dump-top-thing*))
 
 (defvar *dump-ht*)                      ; Bound
 (defvar *prepass* nil)
 (defvar *prelude-vars*)
 (defvar *dumper-gensym-counter*)
+(defvar *dump-top-thing*)		;bound to toplevel object; dump methods can examine this to change their behavior.
 
-(defvar *dump-temp-package* (make-package "DUMP-TEMP" :nicknames '("MTDT")))
+;;; a short main name makes dumps smaller
+(defvar *dump-temp-package* (make-package "MTDT" :nicknames '("DUMP-TEMP")))
 
 (defun dump-var (var)
   `(setq ,var (dump (symbol-value var))))
 
 (defun dump (thing)
-  (let ((*dump-ht* (make-hash-table :test 'eq))
+  (let ((*dump-top-thing* thing)
+	(*dump-ht* (make-hash-table :test 'eq))
         (*prelude-vars* nil)
         (*dumper-gensym-counter* 0))
     (let ((*prepass* t))
@@ -59,42 +62,46 @@ History:
       (values `(let ,*prelude-vars* ,form)
               *dump-ht*))))
    
-(defmethod dump-form :around ((r standard-object))
-  (if *prepass*
-    (let ((hash-result (gethash r *dump-ht*)))
-      (if hash-result
-        (case (car hash-result)
-          (:one-ref 
-           (setf (gethash r *dump-ht*) (cons :multi-ref (cdr hash-result)))
-           (cdr hash-result))
-          (:in-progress (warn "losing circularity on ~A" r)))
-        ;; this could be a case clause but MCL has a bug
-        (progn
-          (setf (gethash r *dump-ht*) '(:in-progress))
-          (let ((result (call-next-method)))
-            (setf (gethash r *dump-ht*) (cons :one-ref result))
-            result))))
-    ;; Second pass
-    (let ((hash-result (gethash r *dump-ht*)))
-      (case (car hash-result)
-        ;; Just one ref, no prob
-        (:one-ref (call-next-method))
-        ;; Mult ref, first time
-        (:multi-ref
-         (let ((sym (intern (concatenate 'string "TEMP" (princ-to-string (incf *dumper-gensym-counter*)))
-                            *dump-temp-package*)))
-           (push sym *prelude-vars*)
-           (setf (gethash r *dump-ht*)
-                 `(:in-progress ,sym))
-           (prog1
-             `(setf ,sym ,(call-next-method))
-             (setf (gethash r *dump-ht*)
-                   `(:second-ref ,sym)))))
-        (:in-progress
-         (error ";;; shit this can't work"))
-        (:second-ref
-         (cadr hash-result))
-        (t (error "ugh"))))))
+;;; There's no common superclass for standard objects and defstructs, so we kludge it to avoid code duplication
+(defmethod dump-form :around ((r t))
+  (if (or (typep r 'standard-object)
+	  (typep r 'structure-object))
+      (if *prepass*
+	  (let ((hash-result (gethash r *dump-ht*)))
+	    (if hash-result
+		(case (car hash-result)
+		  (:one-ref 
+		   (setf (gethash r *dump-ht*) (cons :multi-ref (cdr hash-result)))
+		   (cdr hash-result))
+		  (:in-progress (warn "losing circularity on ~A" r)))
+		;; this could be a case clause but MCL has a bug
+		(progn
+		  (setf (gethash r *dump-ht*) '(:in-progress))
+		  (let ((result (call-next-method)))
+		    (setf (gethash r *dump-ht*) (cons :one-ref result))
+		    result))))
+	  ;; Second pass
+	  (let ((hash-result (gethash r *dump-ht*)))
+	    (case (car hash-result)
+	      ;; Just one ref, no prob
+	      (:one-ref (call-next-method))
+	      ;; Mult ref, first time
+	      (:multi-ref
+	       (let ((sym (intern (concatenate 'string "T" (princ-to-string (incf *dumper-gensym-counter*)))
+				  *dump-temp-package*)))
+		 (push sym *prelude-vars*)
+		 (setf (gethash r *dump-ht*)
+		       `(:in-progress ,sym))
+		 (prog1
+		     `(setf ,sym ,(call-next-method))
+		   (setf (gethash r *dump-ht*)
+			 `(:second-ref ,sym)))))
+	      (:in-progress
+	       (error ";;; shit this can't work"))
+	      (:second-ref
+	       (cadr hash-result))
+	      (t (error "ugh")))))
+      (call-next-method)))
 
 ;;; Default is to dump as self
 (defmethod dump-form ((d t))
@@ -123,6 +130,13 @@ History:
 (defmethod dump-form ((d standard-object))
   `(make-instance ',(class-name (class-of d)) ,@(slot-dump-forms d)))
 
+(defmethod dump-form ((d structure-object))
+  `(,(symbol-conc 'make- (type-of d))
+     ,@(slot-dump-forms d)))
+
+(defmethod slot-dump-forms nconc ((d structure-object))
+  nil)
+
 (defmethod dump-form ((ht hash-table))
   `(undump-ht ',(hash-table-test ht) ',(ht-contents ht)))
 
@@ -146,12 +160,16 @@ History:
   #+CCL (unless slots (setf slots (ccl::class-make-instance-initargs class)))
   `(defmethod slot-dump-forms nconc ((x ,class))
      (mt:collecting
-       (dolist (s ',slots)
-	 (when (slot-boundp x s)
-	   (mt:collect (mt:keywordize s))
-	   (mt:collect (dump-form (slot-value x s))))))))
-
-
+       (dolist (spec ',slots)
+	 (let ((slot (if (listp spec) (car spec) spec))
+	       (default (and (listp spec) (cadr spec)))
+	       value)
+	   (unless (not (slot-boundp x slot))
+	     (setq value (slot-value x slot))
+	     (when (or (not (listp spec))
+		       (not (equal value default)))
+	       (mt:collect (mt:keywordize slot))
+	       (mt:collect (dump-form value)))))))))
 
 #|  this may work better in MCL4, types are now length specific and LENGTH does not return the right thing sometimes
 (defmethod dump-form ((s sequence))
@@ -190,24 +208,13 @@ History:
 
 (defvar *dumping-to-file* nil)		;+++ doesn't do anything...I suppose dump funs can examine
 
-(defun dump-to-file (thing file &key (compile t) prelude (package *package*))
-  (let ((*package* (find-package package))
+(defun dump-to-file (thing file &key (compile t) prelude (package *package*) pretty?)
+  (let ((*package* (if package (find-package package) *package*))
         (*dumping-to-file* (pathname file)))
     (with-open-file (stream file :direction :output :if-exists :supersede)
-      (print `(in-package ,(package-name *package*)) stream)
-      (print prelude stream)
-      (dump-to-stream thing stream))
-    (when compile
-      (compile-file file))))
-
-(defun dump-var-to-file (var file &key (compile t) prelude (package *package*))
-  (let ((*package* (find-package package))
-        (*dumping-to-file* (pathname file)))
-    (with-open-file (stream file :direction :output :if-exists :supersede)
-      (print `(in-package ,(package-name *package*)) stream)
-      (print prelude stream)
-      (let ((*print-array* t))
-        (print `(setq ,var ,(dump (symbol-value var))) stream)))
+      (when package (print `(in-package ,(package-name *package*)) stream))
+      (when prelude (print prelude stream))
+      (dump-to-stream thing stream :pretty? pretty?))
     (when compile
       (compile-file file))))
 
@@ -226,3 +233,14 @@ History:
 ;;; Create a new object EQUAL (loosely speaking) but not EQ to the argument
 (defun dump-copy (object)
   (eval (dump object)))
+
+(defun dump-var-to-file (var file &key (compile t) prelude (package *package*))
+  (let ((*package* (find-package package))
+        (*dumping-to-file* (pathname file)))
+    (with-open-file (stream file :direction :output :if-exists :supersede)
+      (print `(in-package ,(package-name *package*)) stream)
+      (print prelude stream)
+      (let ((*print-array* t))
+        (print `(setq ,var ,(dump (symbol-value var))) stream)))
+    (when compile
+      (compile-file file))))

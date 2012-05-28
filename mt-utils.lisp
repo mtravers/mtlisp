@@ -63,6 +63,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
      (push-end ,item ,place)))
 
 (defun list-insert (list item n)
+  (assert (> n 0))			; unpleasant otherwise
   (let ((cdr (nthcdr (1- n) list)))
     (rplacd cdr (cons item (cdr cdr)))
     list))
@@ -97,7 +98,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
 	    (break-list (nthcdr n l) n))))
 
 ;;; If the lists are not sets (have duplicated items) result is undefined
-(defun set-equal (l1 l2 &optional (test #'eq))
+(defun set-equal (l1 l2 &key (test #'eq))
   (and (= (length l1) (length l2))
        (dolist (elt l1 t)
          (unless (find elt l2 :test test)
@@ -302,6 +303,7 @@ NOTE: This is the canonical version!  Accept no substitutes.
 
 
 
+
 ;;; generalized good iterator.
 
 ;;; Maximum/minimums
@@ -439,7 +441,7 @@ returning the list of results.  Order is maintained as one might expect."
 (defun split-list (predicate list)
   "Returns two lists extracted from list based on PREDICATE."
   (let ((wheat '()) (chaff '()))
-    (dolist (elt list (values wheat chaff))
+    (dolist (elt list (values (nreverse wheat) (nreverse chaff)))
       (if (funcall predicate elt)
 	  (push elt wheat) (push elt chaff)))))
 
@@ -695,10 +697,16 @@ returning the list of results.  Order is maintained as one might expect."
                (cdr (assoc 'function ccl::*define-type-alist*)))
 |#
 
-; Define a memoized function.  The function should be a function in the mathematical sense
+; Define a memoized function; that is, a function that caches its results in a
+; hashtable and will look up prior results before computing a new one.
+; See http://en.wikipedia.org/wiki/Memoization
+
+; The function computed by BODY should be a function in the mathematical sense
 ; (a mapping with no state dependencies).  
-; Comparision of new args to old is by EQUAL.  Redefining the function resets
-; the cache; also defines "reset-<fun>" to clear the cache.
+; Notes: 
+; - Comparision of new args to old is by EQUAL.  
+; - The hashtable is stored as the :CACHE property of the function name
+; - We also define the function "reset-<name>" to clear the cache.
 ; +++ handle declarations in body
 (defmacro def-cached-function (name arglist &body body)
   `(progn
@@ -715,10 +723,14 @@ returning the list of results.  Order is maintained as one might expect."
 		       (destructuring-bind ,arglist args
 			 ,@body)))))))
      (defun ,(symbol-conc 'reset- name) ()
-	 (clrhash (get ',name :cache)))))
+       (awhen (get ',name :cache)
+	 (clrhash it)))))
 
 
-;;; alt version for single argument, uses eql as test, more efficient
+;;; alternate version 
+;;; - for single argument only, 
+;;; - uses eql as test, which ought to be more efficient
+;;; - doesn't yet support the RESET- function
 (defmacro def-cached-function-1 (name arglist &body body)
   (assert (= 1 (length arglist)))
   (let ((ht (make-hash-table :test #'eql)))
@@ -898,17 +910,21 @@ corresponding function."
     (t (if no-error default (error "can't coerce ~A to a number" thing)))))
 
 
-(defun coerce-number (thing &key no-error (default thing))
+(defun coerce-number (thing &key no-error (default thing) allow-junk?)
   (typecase thing
     (number thing)
     (string 
-     (let ((thing (ignore-errors (read-from-string thing))))
-       (if (numberp thing)
-	   thing
-	   (if no-error
-	       default
-	       (error  "can't coerce ~A to a number" thing)))))
-    (t (if no-error default (error "can't coerce ~A to a number" thing)))))
+     (handler-case 
+	 (multiple-value-bind (thing2 end) (read-from-string thing)
+	   (if (and (numberp thing2)
+		    (or allow-junk? (= end (length thing))))
+	       thing2
+	       (if no-error
+		   default
+		   (error  "can't coerce ~A to a number" thing))))
+       (error (c)
+	 (if no-error default (error "can't coerce ~A to a number: ~A" thing c)))))))
+
 
 ;;; Fast versions of non-arithmetic functions
 
@@ -1027,6 +1043,7 @@ corresponding function."
             include-time
             hour minute)))
 
+;; supposed to make "~/mt:format-time/" work, but doesn't
 ; : means use short format
 ; @ means omit the time
 (defun format-time (stream ut colon-flag at-flag)
@@ -1059,7 +1076,7 @@ corresponding function."
      ,@body))
 
 (defun stream-copy-by-lines (in out)
-  (dolines (line s)
+  (dolines (line in)
     (write-line line out)))
 
 (defun file-copy (in out)
@@ -1089,11 +1106,11 @@ corresponding function."
     (write-string string out)))
 
 (defun this-pathname ()
-  "Returns the pathname of the file currently being loaded." 
+  "Returns the pathname of the source file currently being loaded." 
   #+:allegro excl:*source-pathname* 
   #+:ccl (when ccl:*loading-file-source-file* (parse-namestring ccl:*loading-file-source-file*))
   #-(or :allegro :ccl) 
-  (or *load-pathname* *compile-file-pathname*))
+  (or *compile-file-pathname* *load-pathname*))
 
 (defun relative-pathname (name &optional directories)
   (make-pathname :defaults (pathname name)
@@ -1345,6 +1362,7 @@ example:
 ;;; make-load-form will be called.  See clos-dumper.lisp for a slightly more sophisticated
 ;;; version of this.
 
+#| Replaced by the ones in clos-dumper.lisp, I guess
 (defun dump-vars-to-file (vars file)
   (with-open-file (s (merge-pathnames ".lisp" file) :direction :output :if-exists :supersede)
     (format s "(in-package :~A)~%" (package-name *package*))
@@ -1357,6 +1375,7 @@ example:
 ;;; older function, here for compatibility
 (defun dump-var-to-file (var file)
   (dump-vars-to-file (list var) file))
+|#
 
 ;;; Bit manipulation
 
@@ -1427,8 +1446,13 @@ example:
 (defmacro report-and-ignore-errors (&body body)
   `(handler-case (progn ,@body)
      (error (condition) 
-            (format *debug-stream* "~%Error: ~A~%" condition)
+            (format *debug-io* "~%Error: ~A~%" condition)
 	    (values nil condition))))
+
+(defmacro return-errors (&body body)
+  `(handler-case (progn ,@body)
+     (error (condition) 
+       condition)))
 
 (defmacro let*-debug (forms &body body)
   `(let* ,(mapcar #'(lambda (form)
@@ -1515,6 +1539,17 @@ the usual risks associated with mutating lists.
 		      form))
 		  bind-forms)
      ,@body))
+
+(defmacro plabels (def-forms &body body)
+  `(labels ,(mapcar #'(lambda (form)
+			(destructuring-bind (name args &body body) form
+			  `(,name ,args
+				  (print (list ',name ,@args))
+				  (let ((res (progn ,@body)))
+				    (print (list ',name '=> res))
+				    res))))
+		    def-forms)
+	  ,@body))
 
 (defmacro pcond (&body clauses)
   `(cond ,@(mapcar #'(lambda (clause)

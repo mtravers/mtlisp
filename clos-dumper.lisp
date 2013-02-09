@@ -234,13 +234,20 @@ History:
 (defun dump-copy (object)
   (eval (dump object)))
 
-(defun dump-var-to-file (var file &key (compile t) prelude (package *package*))
+;;; SIMPLY? can be used if value is serializable without going through dump (that is, for lists of strings, numbers, etc)
+(defun dump-var-to-file (var file &key (compile t) prelude (package *package*) simply?)
   (let ((*package* (find-package package))
         (*dumping-to-file* (pathname file)))
     (with-open-file (stream file :direction :output :if-exists :supersede)
       (print `(in-package ,(package-name *package*)) stream)
       (print prelude stream)
       (let ((*print-array* t))
-        (print `(setq ,var ,(dump (symbol-value var))) stream)))
+        (print `(setq ,var ,(if simply?
+				(list 'quote (symbol-value var))
+				(dump (symbol-value var))))
+	       stream)))
     (when compile
       (compile-file file))))
+
+
+

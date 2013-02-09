@@ -249,7 +249,8 @@ NOTE: This is the canonical version!  Accept no substitutes.
   `(let ((%results nil))
      (flet ((collect (thing) (push thing %results))
 	    (collect-if (thing) (when thing (push thing %results)))
-	    (collect-new (thing &optional (test #'eql)) (pushnew thing %results :test test)))
+	    (collect-new (thing &optional (test #'eql)) (pushnew thing %results :test test))
+	    (collect-all (things) (setf %results (append things %results))))
        (declare (ignorable (function collect) (function collect-if) (function collect-new)))
        ,@body)
      (nreverse %results)))
@@ -406,6 +407,18 @@ Except for removal of EQL occurences, order is maintained as one might expect."
   (if (listp tree)
       (mapcar #'(lambda (elt) (maptree fcn elt)) tree)
     (funcall fcn tree)))
+
+(defun dotree (fcn tree)
+  (if (listp tree)
+      (mapc #'(lambda (elt) (dotree fcn elt)) tree)
+    (funcall fcn tree)))
+
+;;; Apply fn to all nodes of tree, not just leaves.
+(defun dotree-all (fcn tree)
+  (funcall fcn tree)
+  (if (listp tree)
+      (mapc #'(lambda (elt) (dotree-all fcn elt)) tree)
+      ))
 
 ;;; works on structure with dotted lists
 (defun maptree-dots (fcn tree)
@@ -769,7 +782,7 @@ returning the list of results.  Order is maintained as one might expect."
 corresponding function."
   (let ((fname (symbolize name)))
     `(labels ((,fname ,lambda-list ,@body))
-     #',fname)))
+       #',fname)))
 
 ;;; Randomness
 
@@ -1112,10 +1125,13 @@ corresponding function."
   #-(or :allegro :ccl) 
   (or *compile-file-pathname* *load-pathname*))
 
-(defun relative-pathname (name &optional directories)
-  (make-pathname :defaults (pathname name)
-		 :directory (append (pathname-directory *load-pathname*)
+(defun relative-pathname (base &optional directories)
+  (make-pathname :defaults (pathname base)
+		 :directory (append (pathname-directory (pathname base))
 				    directories)))
+
+(defun dumb-relative-pathname (base rest)
+  (pathname (string+ (namestring base) rest)))
 
 (defun pprint-to-string (struct &optional (right-margin *print-right-margin*))
   (with-output-to-string (stream)
@@ -1561,5 +1577,18 @@ the usual risks associated with mutating lists.
 
 ;;; +++ TBD: a (ptrace <form>) that can be wrapped around any normal function call sexp
 
+(defun unix-current-time ()
+  (- (get-universal-time) 2208988800))
+
+;;; Can't believe we didn't have this...
+(defun compose (f1 f2)
+  #'(lambda (x)
+      (funcall f1 (funcall f2 x))))
+
+(defun nice-gensym (prefix &optional (package *package*))
+  (let* ((index (incf (get prefix :index 0)))
+	 (name (string+ (symbol-name prefix) (fast-string index))))
+    (intern name package)))
+    
 (provide :mt-utils)
 

@@ -1481,13 +1481,11 @@ example:
 (defun now ()
   (get-universal-time))
 
+;;; In CCL, just re-export the symbol 
 (defmacro without-interrupts (&body body)
-  `(#+:CCL 
-    ccl:without-interrupts
-    #-:CCL 
+  `(#-:CCL 
     ,(error "without-interrupts not supported in this lisp")
     ,@body))
-
 
 ;;; Run a section of code in a background process, errors are reported.  Name must be a string.
 ;;; A closure is made around the body.
